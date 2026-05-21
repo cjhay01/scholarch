@@ -2,7 +2,7 @@ const API_BASE_URL = `${window.location.origin}/api`;
 
 async function handleLogin(username, password, remember) {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth`, {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
