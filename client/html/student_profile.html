@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Scholarch profile page — manage your account, update personal information, and change password.">
+  <title>Scholarch | My Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/images/icon.ico" type="image/png">
+  <style>
+    /* ========== GLOBAL VARIABLES & RESET (same as dashboard) ========== */
+    :root {
+      font-size: 19px;
+      --clr-brand: #436DE9;
+      --clr-brand-dark: #2f56c7;
+      --clr-brand-dim: #d6e0fa;
+      --clr-brand-faint: #eff4ff;
+      --clr-yellow: #f0e400;
+      --clr-text: #111;
+      --clr-text-muted: #666;
+      --clr-text-ghost: #999;
+      --clr-text-faint: #bbb;
+      --clr-bg: #f8f9fc;
+      --clr-surface: #ffffff;
+      --clr-border: #eaecf0;
+      --clr-border-hover: #c5c9d4;
+      --clr-success: #16a34a;
+      --clr-success-bg: #f0fdf4;
+      --clr-error: #dc2626;
+      --clr-error-bg: #fef2f2;
+      --font-sans: 'Inter', sans-serif;
+      --font-body: 'IBM Plex Sans', sans-serif;
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 10px rgba(0,0,0,0.04);
+      --sidebar-w: 15rem;
+      --topbar-h: 3.25rem;
+      --mobile-topbar-h: 3rem;
+      --ease-fast: 0.15s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; font-family: inherit; background: none; border: none; }
+
+    /* ========== DESKTOP GRID LAYOUT ========== */
+    .grid-container {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* SIDEBAR (identical to dashboard) */
+    .sidebar {
+      background: var(--clr-surface);
+      border-right: 1px solid var(--clr-border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0 1.25rem;
+      height: var(--topbar-h);
+      border-bottom: 1px solid var(--clr-border);
+      flex-shrink: 0;
+    }
+    .sidebar-logo svg { width: 1.25rem; height: 1.25rem; }
+    .logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); letter-spacing: -0.02em; }
+    .logo-text .ch { color: var(--clr-yellow); }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+    .nav-section-label {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--clr-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.5rem 0.5rem 0.25rem;
+      margin-top: 0.5rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      color: var(--clr-text-muted);
+      transition: background var(--ease-fast), color var(--ease-fast);
+    }
+    .nav-item svg { width: 0.95rem; height: 0.95rem; opacity: 0.6; }
+    .nav-item:hover { background: var(--clr-bg); color: var(--clr-text); }
+    .nav-item.is-active { background: var(--clr-brand-dim); color: var(--clr-brand); font-weight: 500; }
+    .nav-item.is-active svg { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+    .avatar-circle {
+      width: 1.8rem; height: 1.8rem;
+      border-radius: var(--radius-full);
+      background: var(--clr-brand);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 0.75rem; font-weight: 500; color: var(--clr-text); }
+    .sidebar-user-role { font-family: var(--font-body); font-size: 0.65rem; color: var(--clr-text-ghost); }
+    .btn-icon { color: var(--clr-text-faint); transition: color var(--ease-fast); display: flex; align-items: center; }
+    .btn-icon:hover { color: var(--clr-text-muted); }
+    .btn-icon svg { width: 0.9rem; height: 0.9rem; }
+
+    /* RIGHT COLUMN */
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      background: var(--clr-surface);
+      border-bottom: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+      height: var(--topbar-h);
+      flex-shrink: 0;
+    }
+    .topbar-left { display: flex; flex-direction: column; gap: 0.1rem; }
+    .topbar-title { font-size: 0.85rem; font-weight: 600; color: var(--clr-brand-dark); letter-spacing: -0.01em; }
+    .topbar-sub { font-family: var(--font-body); font-size: 0.7rem; color: var(--clr-text-ghost); }
+    .topbar-right { display: flex; align-items: center; gap: 0.6rem; }
+
+    .btn-notif {
+      position: relative;
+      width: 2rem; height: 2rem;
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--clr-text-muted);
+      transition: background var(--ease-fast);
+    }
+    .btn-notif:hover { background: var(--clr-bg); }
+    .btn-notif svg { width: 1rem; height: 1rem; }
+    .notif-badge { position: absolute; top: 0.3rem; right: 0.3rem; width: 0.4rem; height: 0.4rem; background: #d97706; border-radius: var(--radius-full); border: 1px solid var(--clr-surface); }
+    .avatar-btn {
+      width: 1.9rem; height: 1.9rem;
+      border-radius: var(--radius-full);
+      background: var(--clr-brand); color: #fff;
+      font-size: 0.65rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* MAIN CONTENT (scrollable) */
+    .main-content {
+      flex: 1;
+      overflow-y: hidden;
+      padding: 1.5rem;
+    }
+
+    /* FOOTER */
+    .site-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      background: var(--clr-surface);
+      flex-shrink: 0;
+    }
+    .footer-brand { display: flex; align-items: center; gap: 0.6rem; font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); }
+    .footer-links { display: flex; gap: 1.25rem; }
+    .footer-links a { font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); transition: color var(--ease-fast); }
+    .footer-links a:hover { color: var(--clr-brand); }
+
+    /* ========== PROFILE PAGE SPECIFIC STYLES ========== */
+    .profile-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .profile-header {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .avatar-upload {
+      position: relative;
+      width: 5rem;
+      height: 5rem;
+      border-radius: var(--radius-full);
+      background: var(--clr-brand-faint);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .avatar-upload img, .avatar-upload .avatar-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .avatar-upload .avatar-placeholder {
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--clr-brand);
+    }
+    .avatar-upload input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .profile-info h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: var(--clr-brand);
+    }
+    .profile-info p {
+      font-size: 0.8rem;
+      color: var(--clr-text-ghost);
+    }
+
+    /* Info cards / edit forms */
+    .info-card {
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .info-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .info-card-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--clr-text);
+    }
+    .edit-btn {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--clr-brand);
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 0.75rem;
+    }
+    .info-label {
+      width: 100px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--clr-text);
+      opacity: 0.6;      
+    }
+    .info-value {
+      flex: 1;
+      font-size: 0.8rem;
+      color: var(--clr-text-ghost);
+    }
+    .bio-text {
+      padding: 0.75rem;
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: var(--clr-text-muted);
+    }
+    .edit-form {
+      display: none;
+      margin-top: 0.5rem;
+    }
+    .edit-form.active {
+      display: block;
+    }
+    .edit-form input, .edit-form textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      margin-bottom: 0.75rem;
+    }
+    .edit-form textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .btn-save, .btn-cancel-form {
+      padding: 0.35rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+    .btn-save {
+      background: var(--clr-brand);
+      color: white;
+    }
+    .btn-cancel-form {
+      background: var(--clr-bg);
+      color: var(--clr-text-muted);
+    }
+    .change-password-btn {
+      margin-top: 0.5rem;
+      background: var(--clr-bg);
+      color: var(--clr-brand);
+      border: 1px solid var(--clr-border);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+    }
+    .signout-btn {
+      background: var(--clr-error-bg);
+      color: var(--clr-error);
+      border: 1px solid var(--clr-error-border);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(3px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.is-open {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal {
+      background: var(--clr-surface);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 28rem;
+      padding: 1.5rem;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.is-open .modal {
+      transform: scale(1);
+    }
+    .modal h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .modal input {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.75rem;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    /* ========== MOBILE (same as dashboard) ========== */
+    .mobile-topbar, .mobile-nav, .mobile-content { display: none; }
+    @media (max-width: 56em) {
+      .mobile-content {
+        overflow-y: scroll;
+      }
+      .grid-container, .topbar, .sidebar, .site-footer { display: none; }
+      .mobile-topbar {
+        display: flex;
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        background: var(--clr-surface);
+        border-bottom: 1px solid var(--clr-border);
+        height: var(--mobile-topbar-h);
+        padding: 0 1rem;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .mobile-topbar-right { display: flex; align-items: center; gap: 0.5rem; }
+      .mobile-logo { display: flex; align-items: center; gap: 0.4rem; }
+      .mobile-logo svg { width: 1.25rem; height: 1.25rem; }
+      .mobile-logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); letter-spacing: -0.02em; }
+      .mobile-logo-text .ch { color: var(--clr-yellow); }
+      .hamburger {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.375rem;
+      }
+      .hamburger span {
+        display: block;
+        width: 1.375rem;
+        height: 0.175rem;
+        background: var(--clr-text);
+        border-radius: 9999px;
+        transition: all 0.2s ease;
+      }
+      .hamburger[aria-expanded="true"] span:nth-child(1) { transform: translateY(0.375rem) rotate(45deg); }
+      .hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+      .hamburger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-0.375rem) rotate(-45deg); }
+      .mobile-nav {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        background: var(--clr-surface);
+        z-index: 55;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+      }
+      .mobile-nav.is-open { opacity: 1; pointer-events: all; }
+      .mobile-nav-links {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+      }
+      .mobile-nav-links a {
+        font-family: var(--font-body);
+        font-size: 1.125rem;
+        font-weight: 500;
+        color: var(--clr-text-muted);
+      }
+      .mobile-nav-links a.mobile-nav-active { color: var(--clr-brand); font-weight: 600; }
+      .mobile-nav-auth {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+      }
+      .btn-nav-auth {
+        font-family: var(--font-body);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--clr-text);
+        border: 1.5px solid var(--clr-border);
+        border-radius: 9999px;
+        padding: 0.6em 1.75em;
+        min-width: 9rem;
+        text-align: center;
+      }
+      .mobile-content {
+        display: block;
+        flex: 1;
+        overflow-y: auto;
+        height: calc(100vh - var(--mobile-topbar-h));
+      }
+      .mobile-main {
+        flex: 1;
+        padding: 1rem;
+      }
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+      .info-row {
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .info-label {
+        width: auto;
+      }
+      .mobile-footer {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid var(--clr-border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.5rem;
+        background: var(--clr-surface);
+      }
+      .mobile-footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.75rem;
+        color: var(--clr-text-faint);
+      }
+      .mobile-footer-links {
+        color: var(--clr-text-faint);
+        display: flex;
+        gap: 1rem;
+      }
+
+      .mobile-footer-links a {
+        font-family: var(--font-body);
+        font-size: 0.75rem;
+        color: var(--clr-text-faint);
+        transition: color var(--ease-fast);
+      }
+
+
+      .signout-btn {
+        margin-top: 1rem;
+      }
+
+
+      .info-card {
+        margin: 0.8rem;
+    }
+  }
+
+  </style>
+</head>
+<body>
+
+<!-- ========== DESKTOP LAYOUT ========== -->
+<div class="grid-container">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="#" class="sidebar-logo">
+      <svg viewBox="0 0 22 22" fill="none">
+        <circle cx="9" cy="9" r="6.5" stroke="#436DE9" stroke-width="1.8"/>
+        <line x1="14" y1="14" x2="20" y2="20" stroke="#436DE9" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="6.5" y1="9" x2="11.5" y2="9" stroke="#c8a800" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="9" y1="6.5" x2="9" y2="11.5" stroke="#c8a800" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">Scholar<span class="ch">ch</span></span>
+    </a>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Overview</span>
+      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>Dashboard</a>
+      <span class="nav-section-label">Research</span>
+      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Browse Archive</a>
+      <span class="nav-section-label">Account</span>
+      <a href="#" class="nav-item is-active"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Profile</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="avatar-circle">NS</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name">Norialle Santos</div><div class="sidebar-user-role">Student · BSIT</div></div>
+      <button class="btn-icon" aria-label="Log out"><svg viewBox="0 0 16 16" fill="none"><path d="M10 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="7" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><polyline points="11,5 14,8 11,11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </aside>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-column">
+    <header class="topbar">
+      <div class="topbar-left"></div>
+      <div class="topbar-right">
+        <button class="btn-notif" aria-label="Notifications"><svg viewBox="0 0 18 18" fill="none"><path d="M9 1.5A5.5 5.5 0 0 0 3.5 7v3.5L2 12h14l-1.5-1.5V7A5.5 5.5 0 0 0 9 1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="notif-badge"></span></button>
+        <button class="avatar-btn" aria-label="Profile">NS</button>
+      </div>
+    </header>
+    <main class="main-content">
+      <div class="profile-container">
+        <!-- Profile header with avatar -->
+        <div class="profile-header">
+          <div class="avatar-upload" id="avatar-upload">
+            <img id="avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ccircle cx='40' cy='40' r='40' fill='%23e0e7ff'/%3E%3Ctext x='40' y='52' font-size='32' text-anchor='middle' fill='%23436DE9' font-weight='600'%3ENS%3C/text%3E%3C/svg%3E" style="display: block; width: 100%; height: 100%; object-fit: cover;">
+            <div class="avatar-placeholder" style="display: none;">NS</div>
+            <input type="file" id="avatar-file" accept="image/*">
+          </div>
+          <div class="profile-info">
+            <h1>Norialle Yvene Santos</h1>
+            <p>BSIT 2-11 · norialle.santos@plv.edu.ph</p>
+          </div>
+        </div>
+
+        <!-- Personal Information Card (now includes School ID) -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">Personal Information</span>
+            <button class="edit-btn" onclick="toggleEdit('personal')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Edit</button>
+          </div>
+          <div id="personal-view">
+            <div class="info-row"><div class="info-label">Full name</div><div class="info-value" id="display-name">Norialle Yvene Santos</div></div>
+            <div class="info-row"><div class="info-label">Email</div><div class="info-value" id="display-email">norialle.santos@plv.edu.ph</div></div>
+            <div class="info-row"><div class="info-label">Contact</div><div class="info-value" id="display-contact">+63 912 345 6789</div></div>
+            <div class="info-row"><div class="info-label">Section</div><div class="info-value" id="display-section">BSIT 2-11</div></div>
+            <div class="info-row"><div class="info-label">School ID</div><div class="info-value" id="display-schoolid">24-3106</div></div>
+          </div>
+          <div id="personal-edit" class="edit-form">
+            <input type="text" id="edit-name" placeholder="Full name">
+            <input type="email" id="edit-email" placeholder="Email">
+            <input type="tel" id="edit-contact" placeholder="Contact number">
+            <input type="text" id="edit-section" placeholder="Section">
+            <!-- School ID is read-only (assigned by school) -->
+            <div class="info-row" style="margin-top:0.5rem;"><div class="info-label">School ID</div><div class="info-value" style="color:var(--clr-text-ghost);">24-3106 (read‑only)</div></div>
+            <div class="form-actions">
+              <button class="btn-cancel-form" onclick="cancelEdit('personal')">Cancel</button>
+              <button class="btn-save" onclick="savePersonal()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio Card -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">Bio</span>
+            <button class="edit-btn" onclick="toggleEdit('bio')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Edit</button>
+          </div>
+          <div id="bio-view"><div class="bio-text" id="display-bio">Computer science student passionate about web development and UI/UX. Aspiring full-stack developer.</div></div>
+          <div id="bio-edit" class="edit-form">
+            <textarea id="edit-bio" rows="3" placeholder="Write a short bio..."></textarea>
+            <div class="form-actions"><button class="btn-cancel-form" onclick="cancelEdit('bio')">Cancel</button><button class="btn-save" onclick="saveBio()">Save</button></div>
+          </div>
+        </div>
+
+        <!-- Security Card -->
+        <div class="info-card">
+          <div class="info-card-header">
+            <span class="info-card-title">Security</span>
+          </div>
+          <button class="change-password-btn" onclick="openPasswordModal()">Change Password</button>
+          <div style="margin-top: 1rem;">
+            <button class="signout-btn" onclick="confirmSignOut()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Sign out</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-brand"><span class="logo-text" style="font-size:0.85rem;">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div>
+  <nav class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav>
+</footer>
+
+<!-- ========== MOBILE LAYOUT ========== -->
+<header class="mobile-topbar">
+  <a href="#" class="mobile-logo"><svg viewBox="0 0 22 22" fill="none"><circle cx="9" cy="9" r="6.5" stroke="#436DE9" stroke-width="1.8"/><line x1="14" y1="14" x2="20" y2="20" stroke="#436DE9" stroke-width="1.8" stroke-linecap="round"/><line x1="6.5" y1="9" x2="11.5" y2="9" stroke="#c8a800" stroke-width="1.6" stroke-linecap="round"/><line x1="9" y1="6.5" x2="9" y2="11.5" stroke="#c8a800" stroke-width="1.6" stroke-linecap="round"/></svg><span class="mobile-logo-text">Scholar<span class="ch">ch</span></span></a>
+  <div class="mobile-topbar-right">
+    <button class="btn-notif" aria-label="Notifications"><svg viewBox="0 0 18 18" fill="none"><path d="M9 1.5A5.5 5.5 0 0 0 3.5 7v3.5L2 12h14l-1.5-1.5V7A5.5 5.5 0 0 0 9 1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="notif-badge"></span></button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Open menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<nav class="mobile-nav" id="mobile-nav" aria-hidden="true">
+  <ul class="mobile-nav-links"><li><a href="#">Dashboard</a></li><li><a href="#">Browse Archive</a></li><li><a href="#" class="mobile-nav-active">Profile</a></li></ul>
+  <div class="mobile-nav-auth"><a href="#" class="btn-nav-auth">Log out</a></div>
+</nav>
+<div class="mobile-content">
+  <main class="mobile-main">
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="avatar-upload" id="mobile-avatar-upload">
+          <img id="mobile-avatar-preview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Ccircle cx='40' cy='40' r='40' fill='%23e0e7ff'/%3E%3Ctext x='40' y='52' font-size='32' text-anchor='middle' fill='%23436DE9' font-weight='600'%3ENS%3C/text%3E%3C/svg%3E">
+          <input type="file" id="mobile-avatar-file" accept="image/*">
+        </div>
+        <div class="profile-info"><h1>Norialle Yvene Santos</h1><p>BSIT 2-11 · norialle.santos@plv.edu.ph</p></div>
+      </div>
+      <!-- Personal Information (includes School ID) -->
+      <div class="info-card">
+        <div class="info-card-header"><span class="info-card-title">Personal Information</span><button class="edit-btn" onclick="toggleEditMobile('personal')">Edit</button></div>
+        <div id="mobile-personal-view">
+          <div class="info-row"><div class="info-label">Full name</div><div class="info-value">Norialle Yvene Santos</div></div>
+          <div class="info-row"><div class="info-label">Email</div><div class="info-value">norialle.santos@plv.edu.ph</div></div>
+          <div class="info-row"><div class="info-label">Contact</div><div class="info-value">+63 912 345 6789</div></div>
+          <div class="info-row"><div class="info-label">Section</div><div class="info-value">BSIT 2-11</div></div>
+          <div class="info-row"><div class="info-label">School ID</div><div class="info-value">24-3106</div></div>
+        </div>
+        <div id="mobile-personal-edit" class="edit-form">
+          <input type="text" id="mobile-edit-name" placeholder="Full name">
+          <input type="email" id="mobile-edit-email" placeholder="Email">
+          <input type="tel" id="mobile-edit-contact" placeholder="Contact">
+          <input type="text" id="mobile-edit-section" placeholder="Section">
+          <div class="info-row" style="margin-top:0.5rem;"><div class="info-label">School ID</div><div class="info-value" style="color:var(--clr-text-ghost);">24-3106 (read‑only)</div></div>
+          <div class="form-actions"><button class="btn-cancel-form" onclick="cancelEditMobile('personal')">Cancel</button><button class="btn-save" onclick="savePersonalMobile()">Save</button></div>
+        </div>
+      </div>
+      <!-- Bio -->
+      <div class="info-card">
+        <div class="info-card-header"><span class="info-card-title">Bio</span><button class="edit-btn" onclick="toggleEditMobile('bio')">Edit</button></div>
+        <div id="mobile-bio-view"><div class="bio-text">Computer science student passionate about web development and UI/UX.</div></div>
+        <div id="mobile-bio-edit" class="edit-form"><textarea id="mobile-edit-bio" rows="3"></textarea><div class="form-actions"><button class="btn-cancel-form" onclick="cancelEditMobile('bio')">Cancel</button><button class="btn-save" onclick="saveBioMobile()">Save</button></div></div>
+      </div>
+      <!-- Security -->
+      <div class="info-card"><div class="info-card-header"><span class="info-card-title">Security</span></div><button class="change-password-btn" onclick="openPasswordModal()">Change Password</button><div><button class="signout-btn" onclick="confirmSignOut()">Sign out</button></div></div>
+    </div>
+  </main>
+  <footer class="mobile-footer"><div class="mobile-footer-brand"><span class="logo-text" style="font-size:0.85rem;">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div><nav class="mobile-footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav></footer>
+</div>
+
+<!-- Password Change Modal -->
+<div class="modal-overlay" id="password-modal">
+  <div class="modal">
+    <h3>Change Password</h3>
+    <input type="password" id="current-pw" placeholder="Current password">
+    <input type="password" id="new-pw" placeholder="New password">
+    <input type="password" id="confirm-pw" placeholder="Confirm new password">
+    <div class="modal-actions">
+      <button class="btn-cancel-form" onclick="closePasswordModal()">Cancel</button>
+      <button class="btn-save" onclick="changePassword()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal (for sign out) -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3>Confirm Sign Out</h3>
+    <p style="font-size:0.8rem; margin-bottom:1rem;">Are you sure you want to sign out of your account?</p>
+    <div class="modal-actions">
+      <button class="btn-cancel-form" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn-save" style="background:var(--clr-error);" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ========== MOBILE HAMBURGER ========== */
+  const hamburger = document.getElementById('hamburger');
+  const mobileNav = document.getElementById('mobile-nav');
+  if (hamburger && mobileNav) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
+      hamburger.setAttribute('aria-expanded', String(!isOpen));
+      mobileNav.setAttribute('aria-hidden', String(isOpen));
+      if (!isOpen) {
+        mobileNav.style.display = 'flex';
+        mobileNav.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+      } else {
+        mobileNav.classList.remove('is-open');
+        document.body.style.overflow = '';
+        mobileNav.addEventListener('transitionend', () => {
+          if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
+        }, { once: true });
+      }
+    });
+    mobileNav.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        hamburger.setAttribute('aria-expanded', 'false');
+        mobileNav.setAttribute('aria-hidden', 'true');
+        mobileNav.classList.remove('is-open');
+        document.body.style.overflow = '';
+        mobileNav.addEventListener('transitionend', () => {
+          if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
+        }, { once: true });
+      });
+    });
+  }
+
+  /* ========== PROFILE EDIT LOGIC (Desktop & Mobile) ========== */
+  // Desktop personal
+  function toggleEdit(section) {
+    if (section === 'personal') {
+      document.getElementById('personal-view').style.display = 'none';
+      document.getElementById('personal-edit').classList.add('active');
+      document.getElementById('edit-name').value = document.getElementById('display-name').innerText;
+      document.getElementById('edit-email').value = document.getElementById('display-email').innerText;
+      document.getElementById('edit-contact').value = document.getElementById('display-contact').innerText;
+      document.getElementById('edit-section').value = document.getElementById('display-section').innerText;
+    } else if (section === 'bio') {
+      document.getElementById('bio-view').style.display = 'none';
+      document.getElementById('bio-edit').classList.add('active');
+      document.getElementById('edit-bio').value = document.getElementById('display-bio').innerText;
+    }
+  }
+  function cancelEdit(section) {
+    if (section === 'personal') {
+      document.getElementById('personal-view').style.display = 'block';
+      document.getElementById('personal-edit').classList.remove('active');
+    } else if (section === 'bio') {
+      document.getElementById('bio-view').style.display = 'block';
+      document.getElementById('bio-edit').classList.remove('active');
+    }
+  }
+  function savePersonal() {
+    const newName = document.getElementById('edit-name').value;
+    const newEmail = document.getElementById('edit-email').value;
+    const newContact = document.getElementById('edit-contact').value;
+    const newSection = document.getElementById('edit-section').value;
+    document.getElementById('display-name').innerText = newName;
+    document.getElementById('display-email').innerText = newEmail;
+    document.getElementById('display-contact').innerText = newContact;
+    document.getElementById('display-section').innerText = newSection;
+    alert('Personal information updated!');
+    cancelEdit('personal');
+    // Also update sidebar name on desktop
+    document.querySelector('.sidebar-user-name').innerText = newName.split(' ')[0] + ' ' + (newName.split(' ')[1] || '');
+    // Update mobile header if exists
+    const mobileNameElem = document.querySelector('.mobile-greeting-name');
+    if (mobileNameElem) mobileNameElem.innerText = newName.split(' ')[0];
+  }
+  function saveBio() {
+    const newBio = document.getElementById('edit-bio').value;
+    document.getElementById('display-bio').innerText = newBio;
+    alert('Bio updated!');
+    cancelEdit('bio');
+  }
+
+  // Mobile personal
+  function toggleEditMobile(section) {
+    if (section === 'personal') {
+      document.getElementById('mobile-personal-view').style.display = 'none';
+      document.getElementById('mobile-personal-edit').classList.add('active');
+      document.getElementById('mobile-edit-name').value = document.querySelector('#mobile-personal-view .info-value:first-child').innerText;
+      document.getElementById('mobile-edit-email').value = document.querySelector('#mobile-personal-view .info-value:nth-child(2)').innerText;
+      document.getElementById('mobile-edit-contact').value = document.querySelector('#mobile-personal-view .info-value:nth-child(3)').innerText;
+      document.getElementById('mobile-edit-section').value = document.querySelector('#mobile-personal-view .info-value:nth-child(4)').innerText;
+    } else if (section === 'bio') {
+      document.getElementById('mobile-bio-view').style.display = 'none';
+      document.getElementById('mobile-bio-edit').classList.add('active');
+      document.getElementById('mobile-edit-bio').value = document.getElementById('mobile-bio-view').querySelector('.bio-text').innerText;
+    }
+  }
+  function cancelEditMobile(section) {
+    if (section === 'personal') {
+      document.getElementById('mobile-personal-view').style.display = 'block';
+      document.getElementById('mobile-personal-edit').classList.remove('active');
+    } else if (section === 'bio') {
+      document.getElementById('mobile-bio-view').style.display = 'block';
+      document.getElementById('mobile-bio-edit').classList.remove('active');
+    }
+  }
+  function savePersonalMobile() {
+    const newName = document.getElementById('mobile-edit-name').value;
+    const newEmail = document.getElementById('mobile-edit-email').value;
+    const newContact = document.getElementById('mobile-edit-contact').value;
+    const newSection = document.getElementById('mobile-edit-section').value;
+    const viewDiv = document.getElementById('mobile-personal-view');
+    const values = viewDiv.querySelectorAll('.info-value');
+    values[0].innerText = newName;
+    values[1].innerText = newEmail;
+    values[2].innerText = newContact;
+    values[3].innerText = newSection;
+    alert('Personal information updated!');
+    cancelEditMobile('personal');
+  }
+  function saveBioMobile() {
+    const newBio = document.getElementById('mobile-edit-bio').value;
+    document.getElementById('mobile-bio-view').querySelector('.bio-text').innerText = newBio;
+    alert('Bio updated!');
+    cancelEditMobile('bio');
+  }
+
+  /* ========== AVATAR UPLOAD (Desktop & Mobile) ========== */
+  function handleAvatarUpload(fileInput, previewImgId) {
+    const file = fileInput.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById(previewImgId).src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  const desktopAvatar = document.getElementById('avatar-file');
+  const mobileAvatar = document.getElementById('mobile-avatar-file');
+  if (desktopAvatar) desktopAvatar.addEventListener('change', () => handleAvatarUpload(desktopAvatar, 'avatar-preview'));
+  if (mobileAvatar) mobileAvatar.addEventListener('change', () => handleAvatarUpload(mobileAvatar, 'mobile-avatar-preview'));
+
+  /* ========== PASSWORD MODAL ========== */
+  const pwModal = document.getElementById('password-modal');
+  function openPasswordModal() { pwModal.classList.add('is-open'); }
+  function closePasswordModal() { pwModal.classList.remove('is-open'); }
+  function changePassword() {
+    const current = document.getElementById('current-pw').value;
+    const newPw = document.getElementById('new-pw').value;
+    const confirm = document.getElementById('confirm-pw').value;
+    if (!current || !newPw || !confirm) { alert('Please fill all fields.'); return; }
+    if (newPw !== confirm) { alert('New passwords do not match.'); return; }
+    alert('Password changed successfully! (Demo)');
+    closePasswordModal();
+    document.getElementById('current-pw').value = '';
+    document.getElementById('new-pw').value = '';
+    document.getElementById('confirm-pw').value = '';
+  }
+
+  /* ========== SIGN OUT CONFIRMATION ========== */
+  const confirmModal = document.getElementById('confirm-modal');
+  function confirmSignOut() { confirmModal.classList.add('is-open'); }
+  function closeConfirmModal() { confirmModal.classList.remove('is-open'); }
+  function signOut() {
+    alert('You have been signed out. (Demo)');
+    closeConfirmModal();
+    // In a real app, redirect to login page
+    // window.location.href = 'login.html';
+  }
+
+  // Close modals on background click / escape
+  [pwModal, confirmModal].forEach(modal => {
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('is-open'); });
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      pwModal.classList.remove('is-open');
+      confirmModal.classList.remove('is-open');
+    }
+  });
+</script>
+</body>
+</html>

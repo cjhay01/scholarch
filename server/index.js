@@ -22,6 +22,10 @@ app.use('/api/auth', require('./routes/auth.js'));
 app.use('/api/users', require('./routes/user.js'));
 app.use('/api/proposals', require('./routes/proposal.js'));
 
+app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client/html')));
+
+
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {

@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Scholarch admin dashboard — manage archived research studies (BSIT only).">
+  <title>Scholarch | Admin - Manage Archive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="/codebase/images/icon.ico" type="image/png">
+  <style>
+    /* ---------- ROOT VARIABLES (brand: blue + yellow accent) ---------- */
+    :root {
+      font-size: 19px;
+      --clr-brand:         #436DE9;
+      --clr-brand-dark:    #2f56c7;
+      --clr-brand-dim:     #d6e0fa;
+      --clr-brand-faint:   #eff4ff;
+      --clr-yellow:        #f0e400;
+      --clr-yellow-dark:   #d4cc00;
+      --clr-yellow-dim:    #fcf8d0;
+      --clr-text:          #111;
+      --clr-text-muted:    #666;
+      --clr-text-ghost:    #999;
+      --clr-text-faint:    #bbb;
+      --clr-bg:            #f8f9fc;
+      --clr-surface:       #ffffff;
+      --clr-border:        #eaecf0;
+      --clr-border-hover:  #c5c9d4;
+      --clr-draft:         #888;
+      --clr-draft-bg:      #f4f4f5;
+      --clr-amber:         #d97706;
+      --clr-amber-bg:      #fffbeb;
+      --clr-green:         #16a34a;
+      --clr-green-bg:      #f0fdf4;
+      --clr-red:           #dc2626;
+      --clr-red-bg:        #fef2f2;
+      --clr-error:         #dc2626;
+      --clr-success:       #16a34a;
+      --font-sans:         'Inter', sans-serif;
+      --font-body:         'IBM Plex Sans', sans-serif;
+      --radius-sm:         0.5rem;
+      --radius-md:         0.75rem;
+      --radius-lg:         1rem;
+      --radius-full:       9999px;
+      --shadow-sm:         0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:         0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+      --sidebar-w:         15rem;
+      --topbar-h:          3.75rem;
+      --mobile-topbar-h:   3.25rem;
+      --ease-fast:         0.15s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      -webkit-font-smoothing: antialiased;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; font-family: inherit; background: none; border: none; }
+
+    /* ---------- DESKTOP GRID ---------- */
+    .grid-container {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      background: var(--clr-surface);
+      border-right: 1px solid var(--clr-border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0 1.25rem;
+      height: var(--topbar-h);
+      border-bottom: 1px solid var(--clr-border);
+      flex-shrink: 0;
+    }
+    .sidebar-logo svg { width: 1.375rem; height: 1.375rem; }
+    .logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); letter-spacing: -0.02em; }
+    .logo-text .ch { color: var(--clr-yellow); }
+    .sidebar-nav {
+      flex: 1;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+    .nav-section-label {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--clr-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.5rem 0.5rem 0.25rem;
+      margin-top: 0.5rem;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--clr-text-muted);
+      transition: background var(--ease-fast), color var(--ease-fast);
+    }
+    .nav-item svg { width: 0.95rem; height: 0.95rem; opacity: 0.6; }
+    .nav-item:hover { background: var(--clr-bg); color: var(--clr-text); }
+    .nav-item.is-active { background: var(--clr-brand-dim); color: var(--clr-brand); font-weight: 500; }
+    .nav-item.is-active svg { opacity: 1; }
+    .sidebar-footer {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+    .avatar-circle {
+      width: 2rem; height: 2rem;
+      border-radius: var(--radius-full);
+      background: var(--clr-yellow);
+      color: var(--clr-brand-dark);
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 0.8rem; font-weight: 500; color: var(--clr-text); }
+    .sidebar-user-role { font-family: var(--font-body); font-size: 0.65rem; color: var(--clr-text-ghost); }
+
+    .right-column {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .topbar {
+      background: var(--clr-surface);
+      border-bottom: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      height: var(--topbar-h);
+      flex-shrink: 0;
+      z-index: 50;
+    }
+    .topbar-left { display: flex; flex-direction: column; }
+    .topbar-title { font-size: 1rem; font-weight: 600; color: var(--clr-brand-dark); letter-spacing: -0.02em; }
+    .topbar-sub { font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-ghost); }
+    .avatar-btn {
+      width: 2rem; height: 2rem;
+      border-radius: var(--radius-full);
+      background: var(--clr-yellow);
+      color: var(--clr-brand-dark);
+      font-size: 0.7rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 0.7rem; }
+    .topbar-right svg { height: 1.4rem; color: var(--clr-text-muted); }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1.75rem;
+      min-height: 0;
+    }
+
+    /* Archive management specific */
+    .archive-hero {
+      background: linear-gradient(135deg, var(--clr-brand) 0%, #2f56c7 100%);
+      padding: 1.5rem 1.75rem;
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-heading { font-size: 1.5rem; font-weight: 600; color: white; letter-spacing: -0.02em; margin-bottom: 0.3rem; }
+    .hero-heading em { font-style: italic; color: var(--clr-yellow); }
+    .hero-sub { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-bottom: 1rem; }
+    .search-bar { display: flex; gap: 0.6rem; max-width: 550px; }
+    .search-wrap { flex: 1; position: relative; }
+    .search-wrap svg { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 0.9rem; height: 0.9rem; color: var(--clr-text-ghost); }
+    .search-input { width: 100%; padding: 0.5rem 0.75rem 0.5rem 2rem; border-radius: 0.6rem; border: none; font-size: 0.8rem; background: white; }
+    .search-btn { padding: 0.5rem 1rem; background: var(--clr-yellow); color: #111; border-radius: 0.6rem; font-weight: 500; }
+    .hero-stats { display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.7rem; color: rgba(255,255,255,0.7); }
+    .hero-stats strong { color: white; }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .filter-label { font-size: 0.7rem; font-weight: 600; color: var(--clr-text-muted); }
+    .select-filter {
+      padding: 0.3rem 1.5rem 0.3rem 0.7rem;
+      border-radius: 20px;
+      border: 1px solid var(--clr-border);
+      background: white;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--clr-text-muted);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+    }
+    .spacer { flex: 1; }
+    .add-btn {
+      background: var(--clr-brand);
+      color: white;
+      padding: 0.4rem 1rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .add-btn:hover { opacity: 0.85; }
+
+    /* List style (no SVGs) */
+    .list-view {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .list-card {
+      background: white;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: 0.8rem 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: all 0.2s;
+    }
+    .list-card:hover {
+      border-color: var(--clr-brand-dim);
+      box-shadow: var(--shadow-sm);
+    }
+    .list-card-index {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--clr-text-ghost);
+      min-width: 32px;
+      padding-top: 0.2rem;
+    }
+    .list-card-body { flex: 1; }
+    .list-card-top {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+    .list-card-title { font-size: 0.9rem; font-weight: 600; color: var(--clr-text); }
+    .list-card-abstract {
+      font-size: 0.72rem;
+      color: var(--clr-text-muted);
+      line-height: 1.45;
+      margin-bottom: 0.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .list-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      font-size: 0.7rem;
+      color: var(--clr-text-muted);
+    }
+    .list-card-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .edit-study-btn, .delete-study-btn {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.9rem;
+      border-radius: var(--radius-full);
+      transition: all 0.2s;
+    }
+    .edit-study-btn { background: var(--clr-brand-faint); color: var(--clr-brand); }
+    .edit-study-btn:hover { background: var(--clr-brand-dim); }
+    .delete-study-btn { background: var(--clr-red-bg); color: var(--clr-red); }
+    .delete-study-btn:hover { background: var(--clr-red); color: white; }
+
+    /* Modal styles (no department dropdown) */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-overlay.is-open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--clr-surface);
+      border-radius: var(--radius-lg);
+      max-width: 34rem;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+      transform: scale(0.96);
+      transition: transform 0.2s ease;
+    }
+    .modal-overlay.is-open .modal { transform: scale(1); }
+    .modal h3 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--clr-brand); }
+    .modal .field { margin-bottom: 1rem; }
+    .modal .field label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.3rem; color: var(--clr-text-muted); }
+    .modal .field input, .modal .field textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+    }
+    .modal .field textarea { min-height: 80px; resize: vertical; }
+    .modal .field input:focus, .modal .field textarea:focus { outline: none; border-color: var(--clr-brand); box-shadow: 0 0 0 3px rgba(67,109,233,0.1); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
+    .btn-secondary { background: var(--clr-bg); color: var(--clr-text-muted); padding: 0.5rem 1rem; border-radius: var(--radius-full); }
+    .btn-danger { background: var(--clr-red); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-full); }
+    .btn-primary { background: var(--clr-brand); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-full); }
+
+    /* Footer (desktop) */
+    .site-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--clr-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      background: var(--clr-surface);
+      flex-shrink: 0;
+    }
+    .footer-brand { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); }
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); transition: color var(--ease-fast); }
+    .footer-links a:hover { color: var(--clr-brand); }
+
+    /* Mobile responsiveness */
+    .mobile-topbar, .mobile-nav, .mobile-content { display: none; }
+    @media (max-width: 56em) {
+      body { overflow: auto; height: auto; display: block; }
+      .grid-container, .site-footer { display: none; }
+      .mobile-topbar {
+        display: flex;
+        position: sticky;
+        top: 0;
+        background: var(--clr-surface);
+        border-bottom: 1px solid var(--clr-border);
+        height: var(--mobile-topbar-h);
+        padding: 0 1rem;
+        align-items: center;
+        justify-content: space-between;
+        z-index: 60;
+      }
+      .mobile-logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); }
+      .mobile-logo-text .ch { color: var(--clr-yellow); }
+      .hamburger {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        background: none;
+        border: none;
+        padding: 0.375rem;
+      }
+      .hamburger span { width: 1.375rem; height: 0.175rem; background: var(--clr-text); border-radius: 9999px; transition: all 0.2s ease; }
+      .mobile-nav {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        background: var(--clr-surface);
+        z-index: 55;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+      }
+      .mobile-nav.is-open { opacity: 1; pointer-events: all; }
+      .mobile-nav-links { list-style: none; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+      .mobile-nav-links a { font-size: 1.125rem; color: var(--clr-text-muted); text-decoration: none; }
+      .mobile-nav-links a.mobile-nav-active { color: var(--clr-brand); font-weight: 600; }
+      .btn-nav-auth {
+        border: 1.5px solid var(--clr-border);
+        border-radius: 9999px;
+        padding: 0.6em 1.75em;
+        min-width: 9rem;
+        text-align: center;
+        background: transparent;
+      }
+      .mobile-content {
+        display: flex;
+        flex-direction: column;
+        background: var(--clr-bg);
+        min-height: 100vh;
+      }
+
+      .results-info {
+        margin-bottom: 1rem;
+      }
+
+      .mobile-content > div {
+        margin: 1rem;
+      }
+      .mobile-greeting-card {
+        background: var(--clr-brand);
+        border-radius: var(--radius-lg);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+      }
+      .mobile-greeting-card h2 { font-size: 1.125rem; margin-bottom: 0.25rem; color: var(--clr-yellow); }
+      .mobile-avatar {
+        background: var(--clr-yellow);
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: var(--clr-brand-dark);
+      }
+      .list-card { flex-direction: column; align-items: stretch; }
+      .list-card-actions { justify-content: flex-end; margin-top: 0.5rem; }
+      .mobile-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        padding: 1rem;
+        border-top: 1px solid var(--clr-border);
+        background: var(--clr-surface);
+        margin-top: 1.5rem;
+        font-size: 0.75rem;
+        color: var(--clr-text-ghost);
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .mobile-footer .logo-text { font-size: 0.875rem; font-weight: 600; color: var(--clr-brand); }
+      .mobile-footer-links { display: flex; gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- MOBILE TOPBAR & NAV -->
+<header class="mobile-topbar">
+  <a href="#"><span class="mobile-logo-text">Scholar<span class="ch">ch</span></span></a>
+  <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+</header>
+<nav class="mobile-nav" id="mobileNav">
+  <ul class="mobile-nav-links">
+    <li><a href="#">Dashboard</a></li>
+    <li><a href="#">Manage Users</a></li>
+    <li><a href="#" class="mobile-nav-active">Manage Archive</a></li>
+  </ul>
+  <div><a href="#" class="btn-nav-auth">Log out</a></div>
+</nav>
+<div class="mobile-content" id="mobileContent">
+  <div class="mobile-greeting-card">
+    <div><h2>Manage Archive</h2><p>BSIT Studies</p></div>
+    <div class="mobile-avatar">AD</div>
+  </div>
+  <div id="mobileArchiveContainer"></div>
+  <footer class="mobile-footer">
+    <div><span class="logo-text">Scholar<span class="ch">ch</span></span> <span>PLV ITD · 2026</span></div>
+    <div class="mobile-footer-links"><a href="#">Privacy</a> <a href="#">Terms</a> <a href="#">Support</a></div>
+  </footer>
+</div>
+
+<!-- DESKTOP LAYOUT -->
+<div class="grid-container">
+  <aside class="sidebar">
+    <a href="#" class="sidebar-logo">
+      <svg viewBox="0 0 22 22" fill="none">
+        <circle cx="9.5" cy="9.5" r="6.5" stroke="#436DE9" stroke-width="1.8"/>
+        <path d="M14.5 14.5L19 19" stroke="#FFA51F" stroke-width="2"/>
+      </svg>
+      <span class="logo-text">Scholar<span class="ch">ch</span></span>
+    </a>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Admin</span>
+      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</a>
+      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4"/></svg>Manage Users</a>
+      <a href="#" class="nav-item is-active"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5"/><line x1="11" y1="11" x2="15" y2="15"/></svg>Manage Archive</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="avatar-circle">AD</div>
+      <div class="sidebar-user-info"><div class="sidebar-user-name">Admin User</div><div class="sidebar-user-role">Administrator</div></div>
+    </div>
+  </aside>
+
+  <div class="right-column">
+    <header class="topbar">
+      <div class="topbar-left"><span class="topbar-title">Admin Dashboard</span><span class="topbar-sub">Manage Archive · BSIT</span></div>
+      <div class="topbar-right">
+        <svg viewBox="0 0 18 18" fill="none"><path d="M9 1.5A5.5 5.5 0 0 0 3.5 7v3.5L2 12h14l-1.5-1.5V7A5.5 5.5 0 0 0 9 1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.5a2 2 0 0 0 4 0" stroke="currentColor"/></svg>
+        <button class="avatar-btn">AD</button>
+      </div>
+    </header>
+
+    <main class="main-content" id="desktopArchiveContainer">
+      <!-- Dynamic content -->
+    </main>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-brand"><span class="logo-text">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div>
+  <nav class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav>
+</footer>
+
+<!-- Modals -->
+<div class="modal-overlay" id="studyModal">
+  <div class="modal">
+    <h3 id="modalTitle">Add New Study (BSIT)</h3>
+    <div class="field"><label>Title</label><input type="text" id="studyTitle" placeholder="e.g., Smart Attendance System"></div>
+    <div class="field"><label>Authors (student names, comma separated)</label><input type="text" id="studyAuthors" placeholder="Santos, Reyes, Cruz"></div>
+    <div class="field"><label>Professor / Adviser</label><input type="text" id="studyProfessor" placeholder="Prof. R. Mendoza"></div>
+    <div class="field"><label>Year Published</label><input type="number" id="studyYear" placeholder="2026"></div>
+    <div class="field"><label>Archive Date (MMM DD, YYYY)</label><input type="text" id="studyDate" placeholder="Apr 18, 2026"></div>
+    <div class="field"><label>Abstract</label><textarea id="studyAbstract" placeholder="Brief description..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelStudyBtn">Cancel</button>
+      <button class="btn-primary" id="saveStudyBtn">Save Study</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="max-width: 24rem;">
+    <h3>Confirm Delete</h3>
+    <p>Are you sure you want to delete this study? This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="cancelDeleteBtn">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- MOCK DATA (all BSIT, no department field) ----------
+  let studies = [
+    { id: 1, title: "E-Clearance System for PLV Students", authors: "Santos, Reyes, Cruz", professor: "Prof. R. Mendoza", year: 2026, date: "Apr 18, 2026", abstract: "A digital clearance management system that streamlines student clearance." },
+    { id: 2, title: "Smart Parking Management System for PLV Campus", authors: "Dela Cruz, Aquino, Mañago", professor: "Prof. G. Reyes", year: 2026, date: "Apr 15, 2026", abstract: "IoT-integrated parking management using sensors." },
+    { id: 3, title: "Campus Navigation App for PLV", authors: "Villanueva, Bautista, Lim", professor: "Prof. R. Mendoza", year: 2026, date: "Apr 10, 2026", abstract: "Indoor navigation for PLV campus." },
+    { id: 4, title: "Scholarship Portal for PLV Students", authors: "Fernandez, Gomez, Rivera", professor: "Prof. A. Cruz", year: 2026, date: "Apr 8, 2026", abstract: "Centralized platform for scholarship applications." },
+    { id: 5, title: "Automated Library Catalog and Reservation System", authors: "Talento, Masangkay, Ocampo", professor: "Prof. M. Lopez", year: 2025, date: "Nov 22, 2025", abstract: "Library system to search, reserve, and track physical book loans." },
+    { id: 6, title: "PLV Faculty Workload Monitoring System", authors: "Padilla, Uson, Balagtas", professor: "Prof. J. Santos", year: 2025, date: "Oct 14, 2025", abstract: "Admin tool to monitor faculty workload." }
+  ];
+  let nextId = 7;
+
+  let currentEditId = null;
+  let deleteTargetId = null;
+
+  // Helper to render list (desktop + mobile)
+  function renderLists() {
+    const container = document.getElementById('desktopArchiveContainer');
+    const mobileContainer = document.getElementById('mobileArchiveContainer');
+    if (!container) return;
+
+    const years = [...new Set(studies.map(s => s.year))].sort((a,b)=>b-a);
+    const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+    const html = `
+      <section class="archive-hero">
+        <h1 class="hero-heading">Manage <em>Archived</em> Studies (BSIT)</h1>
+        <p class="hero-sub">Add, edit, or remove research entries in the BSIT repository.</p>
+        <div class="search-bar">
+          <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="search-input" type="text" placeholder="Search by title, author, professor..." id="desktopSearch"></div>
+          <button class="search-btn" id="desktopSearchBtn">Search</button>
+        </div>
+        <div class="hero-stats"><div class="stat"><strong>${studies.length}</strong> total studies</div><div class="stat"><strong>${years.length}</strong> years</div></div>
+      </section>
+      <div class="filter-row">
+        <span class="filter-label">Filter by:</span>
+        <select class="select-filter" id="desktopYearFilter">
+          <option value="">All Years</option>
+          ${yearOptions}
+        </select>
+        <select class="select-filter" id="desktopSort">
+          <option value="newest">Newest First</option>
+          <option value="oldest">Oldest First</option>
+          <option value="title">A–Z by Title</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="add-btn" id="addStudyBtnDesktop">+ New Study</button>
+      </div>
+      <div class="results-info"><span class="results-count" id="desktopCount"><strong>${studies.length}</strong> results</span></div>
+      <div class="list-view" id="desktopListView"></div>
+    `;
+    container.innerHTML = html;
+
+    if (mobileContainer) {
+      const mobileYears = [...new Set(studies.map(s=>s.year))].sort((a,b)=>b-a);
+      const mobileYearOptions = mobileYears.map(y=>`<option value="${y}">${y}</option>`).join('');
+      mobileContainer.innerHTML = `
+        <div class="filter-row">
+          <select class="select-filter" id="mobileYearFilter"><option value="">All Years</option>${mobileYearOptions}</select>
+          <select class="select-filter" id="mobileSort"><option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="title">A–Z</option></select>
+          <button class="add-btn" id="addStudyBtnMobile">+ New</button>
+        </div>
+        <div class="results-info"><span class="results-count" id="mobileCount"><strong>${studies.length}</strong> results</span></div>
+        <div class="list-view" id="mobileListView"></div>
+      `;
+      attachMobileEvents();
+    }
+
+    attachDesktopEvents();
+    applyDesktopFilters();
+  }
+
+  function attachDesktopEvents() {
+    document.getElementById('desktopSearchBtn')?.addEventListener('click', () => applyDesktopFilters());
+    document.getElementById('desktopSearch')?.addEventListener('keyup', (e) => { if(e.key==='Enter') applyDesktopFilters(); });
+    document.getElementById('desktopYearFilter')?.addEventListener('change', () => applyDesktopFilters());
+    document.getElementById('desktopSort')?.addEventListener('change', () => applyDesktopFilters());
+    document.getElementById('addStudyBtnDesktop')?.addEventListener('click', () => openStudyModal());
+  }
+
+  function attachMobileEvents() {
+    document.getElementById('mobileYearFilter')?.addEventListener('change', () => applyMobileFilters());
+    document.getElementById('mobileSort')?.addEventListener('change', () => applyMobileFilters());
+    document.getElementById('addStudyBtnMobile')?.addEventListener('click', () => openStudyModal());
+  }
+
+  function getFilteredSortedStudies() {
+    const search = document.getElementById('desktopSearch')?.value.toLowerCase() || '';
+    const year = document.getElementById('desktopYearFilter')?.value || '';
+    const sort = document.getElementById('desktopSort')?.value || 'newest';
+
+    let filtered = studies.filter(s => {
+      const matchYear = !year || s.year === parseInt(year);
+      const matchSearch = !search || s.title.toLowerCase().includes(search) || s.authors.toLowerCase().includes(search) || s.professor.toLowerCase().includes(search);
+      return matchYear && matchSearch;
+    });
+
+    if (sort === 'oldest') filtered.sort((a,b) => a.year - b.year);
+    else if (sort === 'title') filtered.sort((a,b) => a.title.localeCompare(b.title));
+    else filtered.sort((a,b) => b.year - a.year);
+    return filtered;
+  }
+
+  function renderListContainer(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = data.map((s, idx) => `
+      <div class="list-card" data-id="${s.id}">
+        <div class="list-card-index">${String(idx+1).padStart(2,'0')}</div>
+        <div class="list-card-body">
+          <div class="list-card-top">
+            <h3 class="list-card-title">${escapeHtml(s.title)}</h3>
+          </div>
+          <p class="list-card-abstract">${escapeHtml(s.abstract)}</p>
+          <div class="list-card-meta">
+            <span>${escapeHtml(s.authors)}</span>
+            <span>${escapeHtml(s.professor)}</span>
+            <span>${s.date} (${s.year})</span>
+          </div>
+        </div>
+        <div class="list-card-actions">
+          <button class="edit-study-btn" data-id="${s.id}">Edit</button>
+          <button class="delete-study-btn" data-id="${s.id}">Delete</button>
+        </div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.edit-study-btn').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); openStudyModal(parseInt(btn.dataset.id)); };
+    });
+    container.querySelectorAll('.delete-study-btn').forEach(btn => {
+      btn.onclick = (e) => { e.stopPropagation(); openDeleteModal(parseInt(btn.dataset.id)); };
+    });
+  }
+
+  function applyDesktopFilters() {
+    const filtered = getFilteredSortedStudies();
+    const countSpan = document.getElementById('desktopCount');
+    if (countSpan) countSpan.innerHTML = `<strong>${filtered.length}</strong> result${filtered.length !== 1 ? 's' : ''}`;
+    renderListContainer('desktopListView', filtered);
+  }
+
+  function applyMobileFilters() {
+    const year = document.getElementById('mobileYearFilter')?.value || '';
+    const sort = document.getElementById('mobileSort')?.value || 'newest';
+    let filtered = studies.filter(s => {
+      const matchYear = !year || s.year === parseInt(year);
+      return matchYear;
+    });
+    if (sort === 'oldest') filtered.sort((a,b) => a.year - b.year);
+    else if (sort === 'title') filtered.sort((a,b) => a.title.localeCompare(b.title));
+    else filtered.sort((a,b) => b.year - a.year);
+    const countSpan = document.getElementById('mobileCount');
+    if (countSpan) countSpan.innerHTML = `<strong>${filtered.length}</strong> result${filtered.length !== 1 ? 's' : ''}`;
+    renderListContainer('mobileListView', filtered);
+  }
+
+  function openStudyModal(editId = null) {
+    currentEditId = editId;
+    const modal = document.getElementById('studyModal');
+    const modalTitle = document.getElementById('modalTitle');
+    if (editId) {
+      const study = studies.find(s => s.id === editId);
+      if (study) {
+        modalTitle.innerText = 'Edit Study (BSIT)';
+        document.getElementById('studyTitle').value = study.title;
+        document.getElementById('studyAuthors').value = study.authors;
+        document.getElementById('studyProfessor').value = study.professor;
+        document.getElementById('studyYear').value = study.year;
+        document.getElementById('studyDate').value = study.date;
+        document.getElementById('studyAbstract').value = study.abstract;
+      }
+    } else {
+      modalTitle.innerText = 'Add New Study (BSIT)';
+      document.getElementById('studyTitle').value = '';
+      document.getElementById('studyAuthors').value = '';
+      document.getElementById('studyProfessor').value = '';
+      document.getElementById('studyYear').value = new Date().getFullYear();
+      document.getElementById('studyDate').value = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      document.getElementById('studyAbstract').value = '';
+    }
+    modal.classList.add('is-open');
+  }
+
+  function saveStudy() {
+    const title = document.getElementById('studyTitle').value.trim();
+    const authors = document.getElementById('studyAuthors').value.trim();
+    const professor = document.getElementById('studyProfessor').value.trim();
+    const year = parseInt(document.getElementById('studyYear').value);
+    const date = document.getElementById('studyDate').value.trim();
+    const abstract = document.getElementById('studyAbstract').value.trim();
+    if (!title || !authors || !professor || !year || !date) {
+      alert('Please fill all required fields.');
+      return;
+    }
+    if (currentEditId) {
+      const index = studies.findIndex(s => s.id === currentEditId);
+      if (index !== -1) {
+        studies[index] = { ...studies[index], title, authors, professor, year, date, abstract };
+      }
+    } else {
+      studies.push({ id: nextId++, title, authors, professor, year, date, abstract });
+    }
+    closeStudyModal();
+    renderLists();
+  }
+
+  function closeStudyModal() {
+    document.getElementById('studyModal').classList.remove('is-open');
+    currentEditId = null;
+  }
+
+  function openDeleteModal(id) {
+    deleteTargetId = id;
+    document.getElementById('deleteModal').classList.add('is-open');
+  }
+
+  function confirmDelete() {
+    if (deleteTargetId) {
+      studies = studies.filter(s => s.id !== deleteTargetId);
+      deleteTargetId = null;
+      renderLists();
+    }
+    document.getElementById('deleteModal').classList.remove('is-open');
+  }
+
+  function cancelDelete() {
+    deleteTargetId = null;
+    document.getElementById('deleteModal').classList.remove('is-open');
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Modal buttons
+  document.getElementById('saveStudyBtn').onclick = saveStudy;
+  document.getElementById('cancelStudyBtn').onclick = closeStudyModal;
+  document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
+  document.getElementById('cancelDeleteBtn').onclick = cancelDelete;
+
+  // Mobile hamburger
+  const hamburger = document.getElementById('hamburgerBtn');
+  const mobileNav = document.getElementById('mobileNav');
+  if (hamburger && mobileNav) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileNav.classList.contains('is-open');
+      if (!isOpen) {
+        mobileNav.style.display = 'flex';
+        setTimeout(() => mobileNav.classList.add('is-open'), 10);
+        document.body.style.overflow = 'hidden';
+      } else {
+        mobileNav.classList.remove('is-open');
+        document.body.style.overflow = '';
+        mobileNav.addEventListener('transitionend', () => {
+          if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
+        }, { once: true });
+      }
+    });
+  }
+
+  renderLists();
+</script>
+</body>
+</html>
