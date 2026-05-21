@@ -1,9 +1,14 @@
 const bcrypt = require('bcryptjs');
 
 const generateCredentials = async (user) => {
-    const cleanFirstName = user.first_name.trim().toLowerCase();
-    const cleanLastName = user.last_name.trim().toLowerCase();
-    const generatedEmail = `${cleanFirstName}.${cleanLastName}@plv.edu.ph`;
+    // Build initials from all parts of the name (first + last)
+    const nameParts = `${user.first_name.trim()} ${user.last_name.trim()}`.split(/\s+/);
+    const initials = nameParts.map(part => part.charAt(0).toUpperCase()).join('');
+
+    // Strip dashes (and any non-digit characters) from the ID
+    const numericId = user.user_id.replace(/\D/g, '');
+
+    const generatedUsername = `${initials}${numericId}`;
 
     const last4Id = user.user_id.slice(-4);
     const rawPassword = `${user.role.toLowerCase()}${last4Id}`;
@@ -11,7 +16,7 @@ const generateCredentials = async (user) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(rawPassword, salt);
 
-    return { generatedEmail, passwordHash, rawPassword };
+    return { generatedUsername, passwordHash, rawPassword };
 };
 
 module.exports = { generateCredentials };

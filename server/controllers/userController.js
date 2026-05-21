@@ -78,7 +78,7 @@ const generateUserCredentials = async (req, res) => {
     try {
         const targetUser = await User.findById(id);
         if (!targetUser) return res.status(404).json({ message: 'User not found' });
-        if (targetUser.email) return res.status(400).json({ message: 'Credentials already generated for this user' });
+        if (targetUser.username) return res.status(400).json({ message: 'Credentials already generated for this user' });
 
         // Authorization checks
         if (req.user.role === 'Faculty' && targetUser.role !== 'Student') {
@@ -88,9 +88,9 @@ const generateUserCredentials = async (req, res) => {
             return res.status(403).json({ message: 'Admin can only generate credentials for Faculty' });
         }
 
-        const { generatedEmail, passwordHash, rawPassword } = await generateCredentials(targetUser);
+        const { generatedUsername, passwordHash, rawPassword } = await generateCredentials(targetUser);
 
-        targetUser.email = generatedEmail;
+        targetUser.username = generatedUsername;
         targetUser.password = passwordHash;
         await targetUser.save();
 
@@ -98,7 +98,7 @@ const generateUserCredentials = async (req, res) => {
         // You would use NodeMailer here to send an email to a secondary address or display it ONCE to the creator.
         res.status(200).json({
             message: 'Credentials generated successfully',
-            email: targetUser.email,
+            username: targetUser.username,
             temporaryPassword: rawPassword
         });
 
@@ -110,7 +110,7 @@ const generateUserCredentials = async (req, res) => {
 // 3b. Get users without credentials (pending)
 const getPendingUsers = async (req, res) => {
     try {
-        let query = { email: { $exists: false } };
+        let query = { username: { $exists: false } };
 
         // Faculty sees only their own students; Admin sees only Faculty
         if (req.user.role === 'Faculty') {
@@ -133,7 +133,7 @@ const getPendingUsers = async (req, res) => {
 // 3c. Generate credentials for ALL pending users
 const generateAllCredentials = async (req, res) => {
     try {
-        let query = { email: { $exists: false } };
+        let query = { username: { $exists: false } };
 
         if (req.user.role === 'Faculty') {
             query.role = 'Student';
@@ -149,15 +149,15 @@ const generateAllCredentials = async (req, res) => {
 
         const results = [];
         for (const targetUser of pendingUsers) {
-            const { generatedEmail, passwordHash, rawPassword } = await generateCredentials(targetUser);
-            targetUser.email = generatedEmail;
+            const { generatedUsername, passwordHash, rawPassword } = await generateCredentials(targetUser);
+            targetUser.username = generatedUsername;
             targetUser.password = passwordHash;
             await targetUser.save();
             results.push({
                 _id: targetUser._id,
                 user_id: targetUser.user_id,
                 name: `${targetUser.first_name} ${targetUser.last_name}`,
-                email: generatedEmail,
+                username: generatedUsername,
                 temporaryPassword: rawPassword
             });
         }
@@ -290,7 +290,7 @@ const getMyCreatedUsers = async (req, res) => {
                 { adviser_id: req.user._id }
             ]
         })
-        .select('user_id first_name last_name email role createdAt')
+        .select('user_id first_name last_name username role createdAt')
         .sort({ createdAt: -1 });
 
         res.json(users);
