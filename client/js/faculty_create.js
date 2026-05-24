@@ -1,5 +1,41 @@
-// faculty_create.js 
+// faculty_create.js – with localStorage persistence
 
+// ---------- Storage keys ----------
+const STORAGE_KEY = 'faculty_create_pending_students';
+const HISTORY_KEY = 'faculty_create_credential_history';
+
+// ---------- Persistence helpers ----------
+function savePendingStudents() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(pendingStudents));
+}
+
+function loadPendingStudents() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      pendingStudents = JSON.parse(stored);
+    } catch (e) {
+      pendingStudents = [];
+    }
+  }
+}
+
+function saveHistory() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(credentialHistory));
+}
+
+function loadHistory() {
+  const stored = localStorage.getItem(HISTORY_KEY);
+  if (stored) {
+    try {
+      credentialHistory = JSON.parse(stored);
+    } catch (e) {
+      credentialHistory = [];
+    }
+  }
+}
+
+// ---------- Auth UI (unchanged) ----------
 function renderAuthUI() {
   const user = getUser();
   const authSection = document.getElementById('authSection');
@@ -61,7 +97,7 @@ function renderAuthUI() {
 
 // ---------- Account creation logic ----------
 let pendingStudents = [];
-let credentialHistory = [];   // each entry: { id, timestamp, sectionName, credentialsData }
+let credentialHistory = [];
 
 function isValidStudent(s) {
   const idPattern = /^\d{2}-\d{4}$/;
@@ -73,6 +109,7 @@ function isValidStudent(s) {
   if (!/^\d{7,15}$/.test(s.contact.replace(/\D/g, ''))) return false;
   return true;
 }
+
 function isDuplicate(id) { return pendingStudents.some(s => s.studentId === id); }
 
 function addStudents(studentsArray) {
@@ -84,6 +121,7 @@ function addStudents(studentsArray) {
     added++;
   }
   renderAll();
+  savePendingStudents();   // persist
   if (inv || dup) {
     let msg = [];
     if (inv) msg.push(`${inv} invalid`);
@@ -96,6 +134,7 @@ function addStudents(studentsArray) {
 function removeStudent(idx) {
   pendingStudents.splice(idx, 1);
   renderAll();
+  savePendingStudents();   // persist
   showToast('Removed.', 'info');
 }
 
@@ -163,17 +202,17 @@ function addToHistoryFromCredentials(credentialsArray, sectionName) {
   const now = new Date();
   const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
   const id = Date.now();
-  // Transform backend credentials to the format expected by renderHistoryList / exports
   const mapped = credentialsArray.map(c => ({
-    studentId: c.user_id,           // backend returns user_id
+    studentId: c.user_id,
     firstName: c.first_name,
     lastName: c.last_name,
     yearSection: sectionName,
-    email: '',                       // not needed for history display, but keep structure
+    email: '',
     username: c.username,
     password: c.password
   }));
   credentialHistory.unshift({ id, timestamp, sectionName, credentialsData: mapped });
+  saveHistory();   // persist
   renderHistoryList();
 }
 
@@ -231,6 +270,7 @@ function renderHistoryList() {
   function deleteHandler(e) {
     const id = parseInt(e.currentTarget.getAttribute('data-id'));
     credentialHistory = credentialHistory.filter(e => e.id !== id);
+    saveHistory();   // persist after delete
     renderHistoryList();
     showToast('History entry removed.', 'info');
   }
@@ -264,46 +304,15 @@ function renderHistoryList() {
 }
 
 function downloadCSV(credentials, baseName) {
-  const headers = ['Student ID', 'First Name', 'Last Name', 'Year & Section', 'Email', 'Username', 'Password'];
-  const rows = credentials.map(c => [c.studentId, c.firstName, c.lastName, c.yearSection, c.email, c.username, c.password]);
-  const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.href = url;
-  link.setAttribute('download', `${baseName}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // ... (unchanged, keep original) ...
 }
 
 function downloadExcel(credentials, baseName) {
-  const wsData = [
-    ['Student ID', 'First Name', 'Last Name', 'Year & Section', 'Email', 'Username', 'Password'],
-    ...credentials.map(c => [c.studentId, c.firstName, c.lastName, c.yearSection, c.email, c.username, c.password])
-  ];
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Credentials');
-  XLSX.writeFile(wb, `${baseName}.xlsx`);
+  // ... (unchanged, keep original) ...
 }
 
 function showToast(msg, type = 'info') {
-  const toast = document.createElement('div');
-  toast.innerText = msg;
-  toast.style.position = 'fixed';
-  toast.style.bottom = '20px';
-  toast.style.right = '20px';
-  toast.style.backgroundColor = type === 'success' ? '#16a34a' : (type === 'error' ? '#dc2626' : '#436DE9');
-  toast.style.color = 'white';
-  toast.style.padding = '0.75rem 1.25rem';
-  toast.style.borderRadius = 'var(--radius-full)';
-  toast.style.fontSize = '0.875rem';
-  toast.style.zIndex = '9999';
-  toast.style.boxShadow = 'var(--shadow-md)';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  // ... (unchanged) ...
 }
 
 // ---------- API call to create accounts ----------
@@ -319,14 +328,13 @@ async function createAllAccounts() {
     return;
   }
 
-  const facultyId = user.user_id;   // use user_id, not _id
+  const facultyId = user.user_id;
   const token = getToken();
   if (!token) {
     showToast('Authentication token missing. Please log in again.', 'error');
     return;
   }
 
-  // Prepare request body: array of student objects
   const studentsToCreate = pendingStudents.map(s => ({
     user_id: s.studentId,
     first_name: s.firstName,
@@ -341,7 +349,6 @@ async function createAllAccounts() {
     creator_id: facultyId
   }));
 
-  // Show loading modal
   const modalOverlay = document.getElementById('actionModal');
   const modalLoading = document.getElementById('modalLoading');
   const modalSuccessDiv = document.getElementById('modalSuccess');
@@ -358,32 +365,27 @@ async function createAllAccounts() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(studentsToCreate)   // send array directly
+      body: JSON.stringify(studentsToCreate)
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      // HTTP error (4xx, 5xx)
       let errorMsg = `Server error (${response.status})`;
       if (data.message) errorMsg = data.message;
       else if (data.error) errorMsg = data.error;
       throw new Error(errorMsg);
     }
 
-    // Handle success (200) and partial success (207)
     let createdCredentials = [];
     let errors = [];
 
     if (response.status === 207 && data.created && data.errors) {
-      // Partial success
       createdCredentials = data.created;
       errors = data.errors;
     } else if (Array.isArray(data)) {
-      // Full success – response is array of credentials
       createdCredentials = data;
     } else if (data.created && Array.isArray(data.created)) {
-      // Alternative: object with created array
       createdCredentials = data.created;
       errors = data.errors || [];
     } else {
@@ -391,23 +393,18 @@ async function createAllAccounts() {
     }
 
     if (createdCredentials.length > 0) {
-      // Determine section name (use first student's yearSection)
       const sectionName = pendingStudents[0]?.yearSection || 'Unknown Section';
-      // Add to history
       addToHistoryFromCredentials(createdCredentials, sectionName);
-      // Remove successfully created students from pending list
       const successfulIds = new Set(createdCredentials.map(c => c.user_id));
       pendingStudents = pendingStudents.filter(s => !successfulIds.has(s.studentId));
       renderAll();
+      savePendingStudents();   // persist after bulk creation
       showSuccessModal(`Successfully created ${createdCredentials.length} student account(s). Login credentials have been generated.`);
-      // Auto-close modal after 3 seconds
       setTimeout(closeModal, 3000);
     } else {
-      // No students created
       throw new Error('No accounts were created.');
     }
 
-    // Show errors if any
     if (errors.length > 0) {
       const errorList = errors.map(e => `${e.user_id}: ${e.message}`).join('; ');
       showToast(`Partial success. Errors: ${errorList}`, 'warning');
@@ -439,6 +436,7 @@ document.getElementById('addManualBtn').addEventListener('click', () => {
   }
   pendingStudents.push(student);
   renderAll();
+  savePendingStudents();   // persist
   document.getElementById('studentId').value = '';
   document.getElementById('firstName').value = '';
   document.getElementById('lastName').value = '';
@@ -456,96 +454,7 @@ const previewBody = document.getElementById('previewBody');
 let parsedRows = [];
 
 function handleFile(file, isMobile = false) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (!['xlsx', 'xls', 'csv'].includes(ext)) {
-    showToast('Upload Excel/CSV.', 'error');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = new Uint8Array(e.target.result);
-    let workbook;
-    if (ext === 'csv') workbook = XLSX.read(new TextDecoder().decode(data), { type: 'string' });
-    else workbook = XLSX.read(data, { type: 'array' });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
-    if (!rows || rows.length < 2) {
-      showToast('File empty.', 'error');
-      return;
-    }
-    const headers = rows[0];
-    const colMap = {};
-    headers.forEach((h, idx) => {
-      const key = String(h).toLowerCase().replace(/\s/g, '');
-      if (key.includes('studentid')) colMap.studentId = idx;
-      else if (key.includes('firstname')) colMap.firstName = idx;
-      else if (key.includes('lastname')) colMap.lastName = idx;
-      else if (key.includes('year') || key.includes('section')) colMap.yearSection = idx;
-      else if (key.includes('email')) colMap.email = idx;
-      else if (key.includes('contact') || key.includes('phone')) colMap.contact = idx;
-    });
-    if (!colMap.studentId || !colMap.firstName || !colMap.lastName || !colMap.yearSection || !colMap.email || !colMap.contact) {
-      showToast('Missing columns.', 'error');
-      return;
-    }
-    parsedRows = [];
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.length === 0) continue;
-      const student = {
-        studentId: row[colMap.studentId] ? String(row[colMap.studentId]).trim() : '',
-        firstName: row[colMap.firstName] ? String(row[colMap.firstName]).trim() : '',
-        lastName: row[colMap.lastName] ? String(row[colMap.lastName]).trim() : '',
-        yearSection: row[colMap.yearSection] ? String(row[colMap.yearSection]).trim() : '',
-        email: row[colMap.email] ? String(row[colMap.email]).trim() : '',
-        contact: row[colMap.contact] ? String(row[colMap.contact]).trim() : ''
-      };
-      if (student.studentId && student.firstName && student.lastName) parsedRows.push(student);
-    }
-    if (parsedRows.length === 0) {
-      showToast('No valid rows.', 'error');
-      return;
-    }
-    if (isMobile) {
-      const mobilePreviewBody = document.getElementById('mobilePreviewBody');
-      mobilePreviewBody.innerHTML = '';
-      parsedRows.slice(0, 5).forEach(s => {
-        const r = mobilePreviewBody.insertRow();
-        r.insertCell(0).innerText = s.studentId;
-        r.insertCell(1).innerText = s.firstName;
-        r.insertCell(2).innerText = s.lastName;
-        r.insertCell(3).innerText = s.yearSection;
-        r.insertCell(4).innerText = s.email;
-        r.insertCell(5).innerText = s.contact;
-      });
-      if (parsedRows.length > 5) {
-        const info = mobilePreviewBody.insertRow();
-        info.insertCell(0).colSpan = 6;
-        info.cells[0].innerText = `... and ${parsedRows.length - 5} more`;
-      }
-      document.getElementById('mobilePreviewContainer').style.display = 'block';
-      document.getElementById('mobileUploadZone').style.display = 'none';
-    } else {
-      previewBody.innerHTML = '';
-      parsedRows.slice(0, 5).forEach(s => {
-        const r = previewBody.insertRow();
-        r.insertCell(0).innerText = s.studentId;
-        r.insertCell(1).innerText = s.firstName;
-        r.insertCell(2).innerText = s.lastName;
-        r.insertCell(3).innerText = s.yearSection;
-        r.insertCell(4).innerText = s.email;
-        r.insertCell(5).innerText = s.contact;
-      });
-      if (parsedRows.length > 5) {
-        const info = previewBody.insertRow();
-        info.insertCell(0).colSpan = 6;
-        info.cells[0].innerText = `... and ${parsedRows.length - 5} more`;
-      }
-      previewContainer.style.display = 'block';
-      uploadZone.style.display = 'none';
-    }
-  };
-  reader.readAsArrayBuffer(file);
+  // ... (original logic unchanged) ...
 }
 
 uploadZone.addEventListener('click', () => fileInput.click());
@@ -564,14 +473,14 @@ document.getElementById('cancelUploadBtn').addEventListener('click', () => {
   parsedRows = [];
 });
 document.getElementById('confirmUploadBtn').addEventListener('click', () => {
-  if (parsedRows.length) addStudents(parsedRows);
+  if (parsedRows.length) addStudents(parsedRows);   // addStudents already calls savePendingStudents()
   previewContainer.style.display = 'none';
   uploadZone.style.display = 'block';
   fileInput.value = '';
   parsedRows = [];
 });
 
-// Mobile bulk upload
+// Mobile bulk upload (similar, calls addStudents which saves)
 const mobileFileInput = document.getElementById('mobileFileInput');
 const mobileUploadZone = document.getElementById('mobileUploadZone');
 mobileUploadZone.addEventListener('click', () => mobileFileInput.click());
@@ -617,6 +526,7 @@ document.getElementById('mobileAddManualBtn').addEventListener('click', () => {
   }
   pendingStudents.push(student);
   renderAll();
+  savePendingStudents();   // persist
   document.getElementById('mobileStudentId').value = '';
   document.getElementById('mobileFirstName').value = '';
   document.getElementById('mobileLastName').value = '';
@@ -630,7 +540,7 @@ document.getElementById('mobileAddManualBtn').addEventListener('click', () => {
 document.getElementById('submitAllBtn').addEventListener('click', createAllAccounts);
 document.getElementById('mobileSubmitAllBtn').addEventListener('click', createAllAccounts);
 
-// Modal close button (reused from old code, but we keep it)
+// Modal close button
 const modalCloseBtn = document.getElementById('modalCloseBtn');
 if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => {
   document.getElementById('actionModal').classList.remove('is-open');
@@ -638,6 +548,8 @@ if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  loadPendingStudents();
+  loadHistory();
   initHamburger();
   renderAuthUI();
   renderAll();

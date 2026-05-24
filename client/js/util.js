@@ -39,10 +39,14 @@ function showToast(msg, type = 'info') {
 }
 
 function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
+localStorage.removeItem('token');
   localStorage.removeItem('user');
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
+
+  localStorage.removeItem('faculty_create_pending_students');
+  localStorage.removeItem('faculty_create_credential_history');
+
   window.location.href = './login_page.html';
 }
 
