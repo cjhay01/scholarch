@@ -510,3 +510,37 @@ button { cursor: pointer; font-family: inherit; background: none; border: none; 
   .mobile-footer .logo-text { font-size: 0.875rem; font-weight: 600; color: var(--clr-brand); }
   .mobile-footer-links { display: flex; gap: 1rem; }
 }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--clr-text-muted);
+  transition: background var(--ease-fast), color var(--ease-fast);
+}
+.nav-item svg { width: 0.95rem; height: 0.95rem; opacity: 0.6; }
+.nav-item:hover { background: var(--clr-bg); color: var(--clr-text); }
+.nav-item.is-active { background: var(--clr-brand-dim); color: var(--clr-brand); font-weight: 500; }
+.nav-item.is-active svg { opacity: 1; }
+
+#logoutModal .modal h3 {
+  color: var(--clr-red);  
+  font-family: var(--font-body);
+}
+
+#logoutModal .btn-danger {
+  background: var(--clr-red);
+  color: white;
+  font-family: var(--font-body);
+}
+
+#logoutModal .btn-secondary {
+  background: var(--clr-bg);
+  color: var(--clr-text-muted);
+  font-size: 0.8rem;
+  font-family: var(--font-body);
+}
