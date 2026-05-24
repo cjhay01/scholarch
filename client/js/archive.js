@@ -1,10 +1,206 @@
-// archive.js – with login state handling
+// archive.js – dynamic proposals from API, role‑based navigation
+// modified: unauthenticated users see only "Browse Archive"
+
+const API_BASE = window.location.origin + '/api';
+
+// ---------- Helper functions ----------
+function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
 
 function getUser() {
+  const token = getToken();
+  if (!token) return null;
   const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
   return userStr ? JSON.parse(userStr) : null;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function (m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+function showToast(msg, type = 'info') {
+  const toast = document.createElement('div');
+  toast.innerText = msg;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.backgroundColor = type === 'success' ? '#16a34a' : (type === 'error' ? '#dc2626' : '#436DE9');
+  toast.style.color = 'white';
+  toast.style.padding = '0.75rem 1.25rem';
+  toast.style.borderRadius = 'var(--radius-full)';
+  toast.style.fontSize = '0.875rem';
+  toast.style.zIndex = '9999';
+  toast.style.boxShadow = 'var(--shadow-md)';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function clearAuthAndRedirect() {
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('token');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('user');
+  window.location.href = 'landing_page.html';
+}
+
+// ---------- Fetch proposals (only approved/completed) ----------
+async function fetchProposals() {
+  const token = getToken();
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  try {
+    // Fetch proposals where status is Approved or Completed
+    const response = await fetch(`${API_BASE}/proposals?status=Approved&status=Completed`, { headers });
+    if (!response.ok) throw new Error('Failed to fetch studies');
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error(err);
+    showToast('Could not load archive. Please try again later.', 'error');
+    return [];
+  }
+}
+
+// ---------- Hide Dashboard & Profile (unauthenticated users) ----------
+function hideDashboardProfileLinks() {
+  // Sidebar – hide Dashboard and Profile links
+  const dashboardLink = document.getElementById('dashboardLink');
+  const profileLink = document.getElementById('profileLink');
+  if (dashboardLink) dashboardLink.style.display = 'none';
+  if (profileLink) profileLink.style.display = 'none';
+
+  // Also hide any faculty-only "Create Student Accounts" link if present
+  const createAccountsLink = document.getElementById('createAccountsLink');
+  if (createAccountsLink) createAccountsLink.parentElement.style.display = 'none';
+  const studentMgmtSection = document.querySelector('.nav-section-label-student');
+  if (studentMgmtSection) {
+    studentMgmtSection.style.display = 'none';
+    if (studentMgmtSection.nextElementSibling) {
+      studentMgmtSection.nextElementSibling.style.display = 'none';
+    }
+  }
+
+  // Mobile nav – hide Dashboard and Profile (hide their <li>)
+  const mobileDashboardLink = document.getElementById('mobileDashboardLink');
+  const mobileProfileLink = document.getElementById('mobileProfileLink');
+  if (mobileDashboardLink) mobileDashboardLink.parentElement.style.display = 'none';
+  if (mobileProfileLink) mobileProfileLink.parentElement.style.display = 'none';
+
+  // Hide any faculty create link in mobile nav
+  const mobileCreateLink = document.querySelector('.mobile-nav-links a[href="./faculty_create.html"]');
+  if (mobileCreateLink) mobileCreateLink.closest('li').style.display = 'none';
+}
+
+// ---------- Role‑based navigation (desktop sidebar) ----------
+function updateSidebarLinks(role) {
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (!sidebarNav) return;
+
+  // Keep the "Overview" section
+  let overviewSection = sidebarNav.querySelector('.nav-section-label');
+  if (!overviewSection || overviewSection.textContent.trim() !== 'Overview') {
+    sidebarNav.innerHTML = `
+      <span class="nav-section-label">Overview</span>
+      <a href="#" class="nav-item" id="dashboardLink"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>Dashboard</a>
+      <span class="nav-section-label">Research</span>
+      <a href="#" class="nav-item is-active" id="archiveLink"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Browse Archive</a>
+      <span class="nav-section-label">Account</span>
+      <a href="#" class="nav-item" id="profileLink"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M2 14c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Profile</a>
+    `;
+    overviewSection = sidebarNav.querySelector('.nav-section-label');
+  }
+
+  const dashboardLink = document.getElementById('dashboardLink');
+  const profileLink = document.getElementById('profileLink');
+
+  if (role === 'faculty') {
+    dashboardLink.href = './faculty_dashboard.html';
+    profileLink.href = './faculty_profile.html';
+    // Add "Student Management" section if not already present
+    let studentMgmtSection = sidebarNav.querySelector('.nav-section-label-student');
+    if (!studentMgmtSection) {
+      const studentMgmtHtml = `
+        <span class="nav-section-label nav-section-label-student">Student Management</span>
+        <a href="./faculty_create.html" class="nav-item" id="createAccountsLink"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2"/></svg>Create Student Accounts</a>
+      `;
+      const accountSection = sidebarNav.querySelector('.nav-section-label:last-of-type');
+      if (accountSection) {
+        accountSection.insertAdjacentHTML('beforebegin', studentMgmtHtml);
+      } else {
+        sidebarNav.insertAdjacentHTML('beforeend', studentMgmtHtml);
+      }
+    }
+  } else {
+    dashboardLink.href = './student_dashboard.html';
+    profileLink.href = './student_profile.html';
+    const studentMgmtSection = sidebarNav.querySelector('.nav-section-label-student');
+    if (studentMgmtSection) {
+      studentMgmtSection.nextElementSibling?.remove();
+      studentMgmtSection.remove();
+    }
+  }
+}
+
+// ---------- Update mobile navigation based on role ----------
+function updateMobileNav(role) {
+  const mobileNavUl = document.querySelector('.mobile-nav-links');
+  if (!mobileNavUl) return;
+
+  mobileNavUl.innerHTML = '';
+
+  const dashboardFile = (role === 'faculty') ? './faculty_dashboard.html' : './student_dashboard.html';
+  const profileFile = (role === 'faculty') ? './faculty_profile.html' : './student_profile.html';
+
+  let links = `
+    <li><a href="${dashboardFile}">Dashboard</a></li>
+    <li><a href="./archive.html" class="mobile-nav-active">Browse Archive</a></li>
+    <li><a href="${profileFile}">Profile</a></li>
+  `;
+  if (role === 'faculty') {
+    links += `<li><a href="./faculty_create.html">Create Student Accounts</a></li>`;
+  }
+  mobileNavUl.innerHTML = links;
+}
+
+function showPublicNavigation() {
+  // Desktop sidebar – replace entire nav
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (sidebarNav) {
+    sidebarNav.innerHTML = `
+      <span class="nav-section-label">Navigation</span>
+      <a href="./index.html" class="nav-item" id="homeLink">
+        <svg viewBox="0 0 16 16" fill="none">
+          <path d="M2 6l6-4 6 4v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6z" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        Home
+      </a>
+      <a href="./archive.html" class="nav-item is-active" id="archiveLink">
+        <svg viewBox="0 0 16 16" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/>
+          <line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        Browse Archive
+      </a>
+    `;
+  }
+
+  // Mobile nav – replace all links
+  const mobileNavUl = document.querySelector('.mobile-nav-links');
+  if (mobileNavUl) {
+    mobileNavUl.innerHTML = `
+      <li><a href="./index.html">Home</a></li>
+      <li><a href="./archive.html" class="mobile-nav-active">Browse Archive</a></li>
+    `;
+  }
+}
+
+// ---------- Login state UI (with role‑based navigation) ----------
 function renderAuthUI() {
   const user = getUser();
   const authSection = document.getElementById('authSection');
@@ -12,7 +208,6 @@ function renderAuthUI() {
   const mobileAuth = document.getElementById('mobileAuth');
 
   if (user) {
-    // Logged in: show user info and logout button
     const name = user.name || user.first_name + ' ' + user.last_name || 'User';
     const role = user.role || 'Student';
     const initial = name.charAt(0).toUpperCase();
@@ -55,47 +250,32 @@ function renderAuthUI() {
       mobileAuth.innerHTML = `<a href="#" id="mobileLogoutBtn" class="btn-nav-auth">Log out</a>`;
       document.getElementById('mobileLogoutBtn')?.addEventListener('click', clearAuthAndRedirect);
     }
-  } else {
-    // Not logged in: show login button
+
+    // Update navigation links based on role
+    const roleLower = (user.role || 'student').toLowerCase();
+    updateSidebarLinks(roleLower);
+    updateMobileNav(roleLower);
+   } else {
+    // NOT logged in – show login buttons and public navigation (Home + Archive only)
     if (authSection) {
-      authSection.innerHTML = `<a href="./login_page.html" class="btn-primary" style="width:100%; text-align:center;">Log in</a>`;
+      authSection.innerHTML = '<a href="./login_page.html" class="btn-primary" style="width:100%; text-align:center;">Log in</a>';
     }
     if (topbarAuth) {
-      topbarAuth.innerHTML = `<a href="./login_page.html" class="btn-login">Log in</a>`;
+      topbarAuth.innerHTML = '<a href="./login_page.html" class="btn-login">Log in</a>';
     }
     if (mobileAuth) {
-      mobileAuth.innerHTML = `<a href="./login_page.html" class="btn-nav-auth">Log in</a>`;
+      mobileAuth.innerHTML = '<a href="./login_page.html" class="btn-nav-auth">Log in</a>';
     }
+
+    showPublicNavigation();  // <- replaces the old two lines
   }
 }
 
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = './index.html';
-}
-
-// ---------- All existing archive logic (studies, filters, hamburger) remains unchanged ----------
-const studies = [
-  { id: 1, title: "E-Clearance System for PLV Students", authors: "Santos, Reyes, Cruz", department: "BSIT", year: 2026, date: "Apr 18, 2026", abstract: "A digital clearance management system that streamlines the student clearance process at Pamantasan ng Lungsod ng Valenzuela, replacing manual workflows." },
-  { id: 2, title: "Smart Parking Management System for PLV Campus", authors: "Dela Cruz, Aquino, Mañago", department: "BSIT", year: 2026, date: "Apr 15, 2026", abstract: "IoT-integrated parking management using sensors and a mobile interface to locate available slots." },
-  { id: 3, title: "Campus Navigation App for PLV", authors: "Villanueva, Bautista, Lim", department: "BSIT", year: 2026, date: "Apr 10, 2026", abstract: "Indoor navigation for PLV campus helping students and visitors find offices and classrooms." },
-  { id: 4, title: "Scholarship Portal for PLV Students", authors: "Fernandez, Gomez, Rivera", department: "BSIT", year: 2026, date: "Apr 8, 2026", abstract: "Centralized platform for scholarship applications and grantee monitoring." },
-  { id: 5, title: "Automated Library Catalog and Reservation System", authors: "Talento, Masangkay, Ocampo", department: "BSCS", year: 2025, date: "Nov 22, 2025", abstract: "Library system to search, reserve, and track physical book loans." },
-  { id: 6, title: "PLV Faculty Workload Monitoring System", authors: "Padilla, Uson, Balagtas", department: "BSCE", year: 2025, date: "Oct 14, 2025", abstract: "Admin tool to monitor faculty workload distribution." },
-  { id: 7, title: "Online Enrollment and Advising Platform", authors: "Soriano, Macapagal, Castillo", department: "BSCS", year: 2025, date: "Sep 5, 2025", abstract: "Web-based enrollment and academic advising." },
-  { id: 8, title: "Health Records Management System for PLV Clinic", authors: "Mendez, Alegre, Fonacier", department: "BSCE", year: 2025, date: "Aug 19, 2025", abstract: "Secure electronic health records for the school clinic." },
-  { id: 9, title: "Using Facial Recognition for Student Attendance", authors: "Ramos, Dela Peña, Yap", department: "BSIT", year: 2026, date: "Apr 28, 2026", abstract: "ML-based facial recognition attendance system." },
-  { id: 10, title: "Inventory and Asset Tracking for PLV Laboratories", authors: "Cabrera, Espino, Tolentino", department: "BSCE", year: 2024, date: "Dec 3, 2024", abstract: "QR-code enabled lab equipment inventory." },
-  { id: 11, title: "Mobile Learning Application for PLV BSIT Students", authors: "Dimaculangan, Sison, Abaya", department: "BSIT", year: 2024, date: "Nov 9, 2024", abstract: "React Native learning platform for BSIT curriculum." },
-  { id: 12, title: "Digital Canteen Ordering System for PLV", authors: "Esteban, Pangilinan, Narciso", department: "BSCS", year: 2024, date: "Oct 21, 2024", abstract: "Mobile/web-based food ordering to reduce queuing." }
-];
-
+// ---------- Archive display logic (dynamic proposals) ----------
+let studies = [];
 let desktopView = 'list';
-let desktopFiltered = [...studies];
-let mobileFiltered = [...studies];
+let desktopFiltered = [];
+let mobileFiltered = [];
 
 function icon(name) {
   const icons = {
@@ -109,17 +289,21 @@ function icon(name) {
 function renderGrid(containerId, data) {
   const container = document.getElementById(containerId);
   if (!container) return;
+  if (!data.length) {
+    container.innerHTML = '<div class="empty-state"><p>No archived studies found.</p></div>';
+    return;
+  }
   container.innerHTML = data.map(s => `
     <div class="study-card">
       <h3 class="card-title">${escapeHtml(s.title)}</h3>
       <p class="card-abstract">${escapeHtml(s.abstract)}</p>
       <div class="card-meta">
-        <div class="card-meta-row">${icon('user')} ${escapeHtml(s.authors)}</div>
-        <div class="card-meta-row">${icon('calendar')} Archived ${escapeHtml(s.date)}</div>
+        <div class="card-meta-row">${icon('user')} ${escapeHtml(s.authors ? s.authors.join(', ') : 'Unknown')}</div>
+        <div class="card-meta-row">${icon('calendar')} ${escapeHtml(s.date || new Date(s.submissionDate).toLocaleDateString())}</div>
       </div>
       <div class="card-footer">
-        <span class="card-date">${s.year}</span>
-        <a href="studyCard.html?id=${s.id}" class="card-view-link">View ${icon('arrow')}</a>
+        <span class="card-date">${s.year || new Date(s.submissionDate).getFullYear()}</span>
+        <a href="studyCard.html?id=${s._id}" class="card-view-link">View ${icon('arrow')}</a>
       </div>
     </div>
   `).join('');
@@ -128,6 +312,10 @@ function renderGrid(containerId, data) {
 function renderList(containerId, data) {
   const container = document.getElementById(containerId);
   if (!container) return;
+  if (!data.length) {
+    container.innerHTML = '<div class="empty-state"><p>No archived studies found.</p></div>';
+    return;
+  }
   container.innerHTML = data.map((s, i) => `
     <div class="list-card">
       <div class="list-card-index">${String(i + 1).padStart(2, '0')}</div>
@@ -137,12 +325,12 @@ function renderList(containerId, data) {
         </div>
         <p class="list-card-abstract">${escapeHtml(s.abstract)}</p>
         <div class="list-card-meta">
-          <div class="list-meta-item">${icon('user')} ${escapeHtml(s.authors)}</div>
-          <div class="list-meta-item">${icon('calendar')} ${escapeHtml(s.date)}</div>
+          <div class="list-meta-item">${icon('user')} ${escapeHtml(s.authors ? s.authors.join(', ') : 'Unknown')}</div>
+          <div class="list-meta-item">${icon('calendar')} ${escapeHtml(s.date || new Date(s.submissionDate).toLocaleDateString())}</div>
         </div>
       </div>
       <div class="list-card-actions">
-        <a href="studyCard.html?id=${s.id}" class="btn-view">View</a>
+        <a href="studyCard.html?id=${s._id}" class="btn-view">View</a>
       </div>
     </div>
   `).join('');
@@ -151,24 +339,26 @@ function renderList(containerId, data) {
 function updateDesktop() {
   const root = document.getElementById('desktop-root');
   if (!root) return;
+
+  const years = [...new Set(studies.map(s => s.year || new Date(s.submissionDate).getFullYear()))].sort((a, b) => b - a);
+  const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
   root.innerHTML = `
     <section class="archive-hero">
       <div class="hero-eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Research Archive — PLV Repository</div>
       <h1 class="hero-heading">Explore <em>approved</em> research<br>from PLV students.</h1>
-      <p class="hero-sub">Browse and search the complete archive of approved capstone and thesis proposals for WS101.</p>
+      <p class="hero-sub">Browse and search the complete archive of approved capstone and thesis proposals.</p>
       <div class="search-bar">
         <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="search-input" type="text" placeholder="Search…" id="desktopSearch"></div>
         <button class="search-btn">Search</button>
       </div>
-      <div class="hero-stats"><div class="stat"><strong>142</strong> approved studies</div><div class="stat"><strong>6</strong> </div><div class="stat"><strong>2022–2026</strong></div></div>
+      <div class="hero-stats"><div class="stat"><strong>${studies.length}</strong> approved studies</div><div class="stat"><strong>${years.length}</strong> years</div></div>
     </section>
     <div class="filter-row">
       <span class="filter-label">Filter:</span>
       <select class="select-filter" id="desktopYear">
         <option value="">All Years</option>
-        <option value="2026">2026</option>
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
+        ${yearOptions}
       </select>
       <select class="select-filter" id="desktopSort">
         <option value="newest">Newest First</option>
@@ -207,20 +397,23 @@ function applyDesktopFilters() {
   const search = document.getElementById('desktopSearch')?.value.toLowerCase() || '';
   const year = document.getElementById('desktopYear')?.value || '';
   const sort = document.getElementById('desktopSort')?.value || 'newest';
-  
+
   desktopFiltered = studies.filter(s => {
-    const matchYear = !year || s.year === parseInt(year);
-    const matchSearch = !search || s.title.toLowerCase().includes(search) || s.authors.toLowerCase().includes(search) || s.abstract.toLowerCase().includes(search);
+    const studyYear = s.year || new Date(s.submissionDate).getFullYear();
+    const matchYear = !year || studyYear === parseInt(year);
+    const matchSearch = !search || s.title.toLowerCase().includes(search) ||
+      (s.authors && s.authors.some(a => a.toLowerCase().includes(search))) ||
+      (s.abstract && s.abstract.toLowerCase().includes(search));
     return matchYear && matchSearch;
   });
-  
-  if (sort === 'oldest') desktopFiltered.sort((a, b) => a.year - b.year);
+
+  if (sort === 'oldest') desktopFiltered.sort((a, b) => (a.year || a.submissionDate) - (b.year || b.submissionDate));
   else if (sort === 'title') desktopFiltered.sort((a, b) => a.title.localeCompare(b.title));
-  else desktopFiltered.sort((a, b) => b.year - a.year);
-  
+  else desktopFiltered.sort((a, b) => (b.year || b.submissionDate) - (a.year || a.submissionDate));
+
   const countSpan = document.getElementById('desktopCount');
   if (countSpan) countSpan.innerHTML = `<strong>${desktopFiltered.length}</strong> result${desktopFiltered.length !== 1 ? 's' : ''}`;
-  
+
   if (desktopView === 'grid') {
     document.getElementById('desktopGridView')?.classList.remove('hidden');
     document.getElementById('desktopListView')?.classList.add('hidden');
@@ -235,24 +428,26 @@ function applyDesktopFilters() {
 function updateMobile() {
   const root = document.getElementById('mobile-root');
   if (!root) return;
+
+  const years = [...new Set(studies.map(s => s.year || new Date(s.submissionDate).getFullYear()))].sort((a, b) => b - a);
+  const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
   root.innerHTML = `
     <section class="archive-hero">
       <div class="hero-eyebrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Research Archive — PLV Repository</div>
       <h1 class="hero-heading">Explore <em>approved</em> research<br>from PLV students.</h1>
-      <p class="hero-sub">Browse and search the complete archive of approved capstone and thesis proposals for WS101.</p>
+      <p class="hero-sub">Browse and search the complete archive of approved capstone and thesis proposals.</p>
       <div class="search-bar">
         <div class="search-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input class="search-input" type="text" placeholder="Search…" id="mobileSearch"></div>
         <button class="search-btn">Search</button>
       </div>
-      <div class="hero-stats"><div class="stat"><strong>142</strong> approved studies</div><div class="stat"><strong>6</strong> </div><div class="stat"><strong>2022–2026</strong></div></div>
+      <div class="hero-stats"><div class="stat"><strong>${studies.length}</strong> approved studies</div><div class="stat"><strong>${years.length}</strong> years</div></div>
     </section>
     <div class="filter-row">
       <span class="filter-label">Filter:</span>
       <select class="select-filter" id="mobileYear">
         <option value="">All Years</option>
-        <option value="2026">2026</option>
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
+        ${yearOptions}
       </select>
       <select class="select-filter" id="mobileSort">
         <option value="newest">Newest First</option>
@@ -278,33 +473,47 @@ function applyMobileFilters() {
   const search = document.getElementById('mobileSearch')?.value.toLowerCase() || '';
   const year = document.getElementById('mobileYear')?.value || '';
   const sort = document.getElementById('mobileSort')?.value || 'newest';
-  
+
   mobileFiltered = studies.filter(s => {
-    const matchYear = !year || s.year === parseInt(year);
-    const matchSearch = !search || s.title.toLowerCase().includes(search) || s.authors.toLowerCase().includes(search) || s.abstract.toLowerCase().includes(search);
+    const studyYear = s.year || new Date(s.submissionDate).getFullYear();
+    const matchYear = !year || studyYear === parseInt(year);
+    const matchSearch = !search || s.title.toLowerCase().includes(search) ||
+      (s.authors && s.authors.some(a => a.toLowerCase().includes(search))) ||
+      (s.abstract && s.abstract.toLowerCase().includes(search));
     return matchYear && matchSearch;
   });
-  
-  if (sort === 'oldest') mobileFiltered.sort((a, b) => a.year - b.year);
+
+  if (sort === 'oldest') mobileFiltered.sort((a, b) => (a.year || a.submissionDate) - (b.year || b.submissionDate));
   else if (sort === 'title') mobileFiltered.sort((a, b) => a.title.localeCompare(b.title));
-  else mobileFiltered.sort((a, b) => b.year - a.year);
-  
+  else mobileFiltered.sort((a, b) => (b.year || b.submissionDate) - (a.year || a.submissionDate));
+
   const countSpan = document.getElementById('mobileCount');
   if (countSpan) countSpan.innerHTML = `<strong>${mobileFiltered.length}</strong> result${mobileFiltered.length !== 1 ? 's' : ''}`;
   renderGrid('mobileGridView', mobileFiltered);
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
+// ---------- Load data and initialize ----------
+async function initArchive() {
+  renderAuthUI(); // sets up navigation based on user role
+
+  const proposals = await fetchProposals();
+  // Transform proposal data to match expected fields
+  studies = proposals.map(p => ({
+    _id: p._id,
+    title: p.title,
+    authors: p.members ? p.members.map(m => m.name) : [],
+    abstract: p.abstract,
+    submissionDate: p.submissionDate,
+    year: p.approvalDate ? new Date(p.approvalDate).getFullYear() : new Date(p.submissionDate).getFullYear(),
+    date: p.approvalDate ? new Date(p.approvalDate).toLocaleDateString() : new Date(p.submissionDate).toLocaleDateString()
+  }));
+  desktopFiltered = [...studies];
+  mobileFiltered = [...studies];
+  updateDesktop();
+  updateMobile();
 }
 
-// Hamburger menu
+// ---------- Hamburger menu ----------
 const hamburger = document.getElementById('hamburger');
 const mobileNav = document.getElementById('mobile-nav');
 if (hamburger && mobileNav) {
@@ -336,6 +545,4 @@ if (hamburger && mobileNav) {
   });
 }
 
-renderAuthUI();
-updateDesktop();
-updateMobile();
+initArchive();  
