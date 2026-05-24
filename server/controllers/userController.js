@@ -290,10 +290,50 @@ const getMyCreatedUsers = async (req, res) => {
                 { adviser_id: req.user._id }
             ]
         })
-        .select('user_id first_name last_name username role createdAt')
-        .sort({ createdAt: -1 });
+            .select('user_id first_name last_name username role createdAt')
+            .sort({ createdAt: -1 });
 
         res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get currently logged-in user
+const getMyUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Update current user's profile info
+const updateMyInfo = async (req, res) => {
+    const { first_name, last_name, email, contact, year_and_section, department, bio } = req.body;
+
+    try {
+        const updateFields = {};
+        if (first_name !== undefined) updateFields.first_name = first_name;
+        if (last_name !== undefined) updateFields.last_name = last_name;
+        if (email !== undefined) updateFields.email = email;
+        if (contact !== undefined) updateFields.contact_number = contact;
+        if (year_and_section !== undefined) updateFields.year_and_section = year_and_section;
+        if (department !== undefined) updateFields.department = department;
+        if (bio !== undefined) updateFields.bio = bio;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            updateFields,
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json(user);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -310,5 +350,7 @@ module.exports = {
     getMyClassmates,
     getMyCreatedUsers,
     updateProfile,
-    changePassword
+    changePassword,
+    getMyUser,
+    updateMyInfo
 };

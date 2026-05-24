@@ -2,7 +2,8 @@
 
 let currentUser = null;
 let profileData = {
-  name: '',
+  first_name: '',
+  last_name: '',
   email: '',
   contact: '',
   department: '',
@@ -40,7 +41,8 @@ async function loadProfileData() {
     localStorage.setItem('user', JSON.stringify(user));
     // Populate profileData from API response
     profileData = {
-      name: user.name || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
       email: user.email || '',
       contact: user.contact || '',
       department: user.department || 'CEIT',
@@ -56,7 +58,8 @@ async function loadProfileData() {
     if (localUser) {
       currentUser = localUser;
       profileData = {
-        name: localUser.name || '',
+        first_name: localUser.first_name || '',
+        last_name: localUser.last_name || '',
         email: localUser.email || '',
         contact: localUser.contact || '',
         department: localUser.department || 'CEIT',
@@ -73,28 +76,31 @@ async function loadProfileData() {
 }
 
 function updateProfileUI() {
+  const fullName = `${profileData.first_name} ${profileData.last_name}`;
   // Desktop
-  document.getElementById('displayName').innerText = profileData.name;
+  document.getElementById('displayFirstName').innerText = profileData.first_name;
+  document.getElementById('displayLastName').innerText = profileData.last_name;
   document.getElementById('displayEmail').innerText = profileData.email;
   document.getElementById('displayContact').innerText = profileData.contact;
   document.getElementById('displayDept').innerText = profileData.department;
   document.getElementById('displayFacultyId').innerText = profileData.facultyId;
   document.getElementById('displayBio').innerText = profileData.bio;
-  document.getElementById('profileName').innerText = profileData.name;
+  document.getElementById('profileName').innerText = fullName;
   document.getElementById('profileRole').innerHTML = `Faculty · ${profileData.department} Department · ${profileData.email}`;
 
   // Mobile
   const mobileValues = document.querySelectorAll('#mobilePersonalView .info-value');
-  if (mobileValues.length >= 5) {
-    mobileValues[0].innerText = profileData.name;
-    mobileValues[1].innerText = profileData.email;
-    mobileValues[2].innerText = profileData.contact;
-    mobileValues[3].innerText = profileData.department;
-    mobileValues[4].innerText = profileData.facultyId;
+  if (mobileValues.length >= 6) {
+    mobileValues[0].innerText = profileData.first_name;
+    mobileValues[1].innerText = profileData.last_name;
+    mobileValues[2].innerText = profileData.email;
+    mobileValues[3].innerText = profileData.contact;
+    mobileValues[4].innerText = profileData.department;
+    mobileValues[5].innerText = profileData.facultyId;
   }
   const mobileBioDiv = document.querySelector('#mobileBioView .bio-text');
   if (mobileBioDiv) mobileBioDiv.innerText = profileData.bio;
-  document.getElementById('mobileProfileName').innerText = profileData.name;
+  document.getElementById('mobileProfileName').innerText = fullName;
   document.getElementById('mobileProfileRole').innerHTML = `Faculty · ${profileData.department} · ${profileData.email}`;
 }
 
@@ -112,11 +118,12 @@ function setButtonsLoading(loading, ...buttons) {
 // ---------- Save profile changes ----------
 async function savePersonal(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newName = document.getElementById(`${prefix}EditName`).value.trim();
+  const newFirstName = document.getElementById(`${prefix}EditFirstName`).value.trim();
+  const newLastName = document.getElementById(`${prefix}EditLastName`).value.trim();
   const newEmail = document.getElementById(`${prefix}EditEmail`).value.trim();
   const newContact = document.getElementById(`${prefix}EditContact`).value.trim();
   const newDept = document.getElementById(`${prefix}EditDept`).value.trim();
-  if (!newName || !newEmail || !newContact || !newDept) {
+  if (!newFirstName || !newLastName || !newEmail || !newContact || !newDept) {
     showToast('All fields are required.', 'error');
     return;
   }
@@ -133,7 +140,8 @@ async function savePersonal(isMobile = false) {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        name: newName,
+        first_name: newFirstName,
+        last_name: newLastName,
         email: newEmail,
         contact: newContact,
         department: newDept,
@@ -146,7 +154,8 @@ async function savePersonal(isMobile = false) {
     localStorage.setItem('user', JSON.stringify(updatedUser));
     currentUser = updatedUser;
     profileData = {
-      name: updatedUser.name,
+      first_name: updatedUser.first_name,
+      last_name: updatedUser.last_name,
       email: updatedUser.email,
       contact: updatedUser.contact,
       department: updatedUser.department,
@@ -179,7 +188,8 @@ async function saveBio(isMobile = false) {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        name: profileData.name,
+        first_name: profileData.first_name,
+        last_name: profileData.last_name,
         email: profileData.email,
         contact: profileData.contact,
         department: profileData.department,
@@ -362,12 +372,14 @@ function toggleEdit(section, isMobile = false) {
       view.style.display = 'none';
       edit.classList.add('active');
       if (!isMobile) {
-        document.getElementById('editName').value = profileData.name;
+        document.getElementById('editFirstName').value = profileData.first_name;
+        document.getElementById('editLastName').value = profileData.last_name;
         document.getElementById('editEmail').value = profileData.email;
         document.getElementById('editContact').value = profileData.contact;
         document.getElementById('editDept').value = profileData.department;
       } else {
-        document.getElementById('mobileEditName').value = profileData.name;
+        document.getElementById('mobileEditFirstName').value = profileData.first_name;
+        document.getElementById('mobileEditLastName').value = profileData.last_name;
         document.getElementById('mobileEditEmail').value = profileData.email;
         document.getElementById('mobileEditContact').value = profileData.contact;
         document.getElementById('mobileEditDept').value = profileData.department;
