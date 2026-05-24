@@ -1,0 +1,6 @@
+user_id,first_name,last_name,year_and_section,email,contact_number
+23-1001,John,Doe,BSIT 2-3,john.doe@example.com,09123456789
+23-1002,Jane,Smith,BSIT 2-3,jane.smith@example.com,09987654321
+23-1003,Michael,Johnson,BSIT 2-3,michael.j@example.com,09112223333
+23-1004,Emily,Davis,BSIT 2-3,emily.d@example.com,09445556666
+23-1005,William,Brown,BSIT 2-3,william.b@example.com,09778889999

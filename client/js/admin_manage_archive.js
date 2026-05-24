@@ -18,7 +18,7 @@ function renderAuthUI() {
   const mobileAvatar = document.getElementById('mobileAvatar');
 
   // Admin only
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== 'Admin') {
     window.location.href = './login_page.html';
     return;
   }
@@ -107,53 +107,123 @@ async function fetchUsers() {
 }
 
 // ---------- Rendering ----------
-function buildUserSelectOptions(selectedIds = []) {
-  return users.map(u => `
-    <option value="${u._id}" ${selectedIds.includes(u._id) ? 'selected' : ''}>
-      ${escapeHtml(u.name)} (${u.role})
-    </option>
-  `).join('');
+let currentMembers = [];
+const MAX_MEMBERS = 6;
+
+function renderMembers() {
+  const container = document.getElementById('studyMembersList');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const allStudents = users.filter(u => u.role === 'Student');
+
+  currentMembers.forEach((member, idx) => {
+    const row = document.createElement('div');
+    row.className = 'member-row';
+
+    const select = document.createElement('select');
+    select.className = 'member-select';
+    
+    if (!member.userId) {
+      select.innerHTML = '<option value="">-- Select Student --</option>';
+    }
+
+    allStudents.forEach(student => {
+      const option = document.createElement('option');
+      option.value = student._id;
+      option.textContent = escapeHtml(student.name);
+      if (student._id === member.userId) option.selected = true;
+      select.appendChild(option);
+    });
+
+    select.addEventListener('change', function () {
+      currentMembers[idx].userId = this.value;
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove-member';
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = `<svg viewBox="0 0 14 14" fill="none"><line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+    
+    removeBtn.addEventListener('click', () => {
+      currentMembers.splice(idx, 1);
+      renderMembers();
+    });
+
+    const indexSpan = document.createElement('span');
+    indexSpan.className = 'member-index';
+    indexSpan.textContent = idx + 1;
+
+    row.appendChild(indexSpan);
+    row.appendChild(select);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+  });
+
+  const addBtn = document.getElementById('addMemberBtn');
+  const hint = document.getElementById('memberHint');
+  const atMax = currentMembers.length >= MAX_MEMBERS;
+  if (addBtn) addBtn.disabled = atMax;
+  if (hint) hint.textContent = atMax ? `Maximum of ${MAX_MEMBERS} members reached.` : `Up to ${MAX_MEMBERS} members.`;
+}
+
+function addMember() {
+  if (currentMembers.length >= MAX_MEMBERS) return;
+  const allStudents = users.filter(u => u.role === 'Student');
+  const selectedIds = currentMembers.map(m => m.userId);
+  const available = allStudents.filter(s => !selectedIds.includes(s._id));
+  
+  if (available.length > 0) {
+      currentMembers.push({ userId: available[0]._id });
+  } else {
+      currentMembers.push({ userId: '' });
+  }
+  renderMembers();
 }
 
 function openStudyModal(editId = null) {
   const modal = document.getElementById('studyModal');
   const modalTitle = document.getElementById('modalTitle');
-  const membersSelect = document.getElementById('studyMembers');
   const adviserSelect = document.getElementById('studyAdviser');
 
-  if (membersSelect) membersSelect.innerHTML = buildUserSelectOptions();
-  if (adviserSelect) adviserSelect.innerHTML = '<option value="">-- Select Adviser --</option>' + buildUserSelectOptions();
+  const faculty = users.filter(u => u.role === 'Faculty');
+  if (adviserSelect) {
+    adviserSelect.innerHTML = '<option value="">-- Select Adviser --</option>' + 
+      faculty.map(u => `<option value="${u._id}">${escapeHtml(u.name)} (${u.role})</option>`).join('');
+  }
 
   if (editId) {
     const proposal = proposals.find(p => p._id === editId);
     if (proposal) {
       modalTitle.textContent = 'Edit Study (BSIT)';
       document.getElementById('studyTitle').value = proposal.title;
+      
       const memberIds = proposal.members ? proposal.members.map(m => typeof m === 'object' ? m._id : m) : [];
-      if (membersSelect) {
-        [...membersSelect.options].forEach(opt => {
-          opt.selected = memberIds.includes(opt.value);
-        });
-      }
+      currentMembers = memberIds.map(id => ({ userId: id }));
+      
       const adviserId = proposal.adviser && typeof proposal.adviser === 'object' ? proposal.adviser._id : proposal.adviser;
       if (adviserSelect) adviserSelect.value = adviserId || '';
 
       document.getElementById('studyYear').value = proposal.year || new Date().getFullYear();
-      document.getElementById('studyDate').value = proposal.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const dateVal = proposal.date ? new Date(proposal.date) : new Date();
+      document.getElementById('studyDate').value = isNaN(dateVal) ? '' : 
+        dateVal.getFullYear() + '-' + String(dateVal.getMonth() + 1).padStart(2, '0') + '-' + String(dateVal.getDate()).padStart(2, '0');
       document.getElementById('studyAbstract').value = proposal.abstract || '';
       modal.dataset.editId = editId;
     }
   } else {
     modalTitle.textContent = 'Add New Study (BSIT)';
     document.getElementById('studyTitle').value = '';
-    if (membersSelect) [...membersSelect.options].forEach(opt => opt.selected = false);
+    currentMembers = [];
     if (adviserSelect) adviserSelect.value = '';
     document.getElementById('studyYear').value = new Date().getFullYear();
-    document.getElementById('studyDate').value = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const today = new Date();
+    document.getElementById('studyDate').value = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     document.getElementById('studyAbstract').value = '';
     delete modal.dataset.editId;
   }
 
+  renderMembers();
   modal.classList.add('is-open');
 }
 
@@ -163,18 +233,17 @@ function closeStudyModal() {
 
 async function saveStudy() {
   const title = document.getElementById('studyTitle').value.trim();
-  const membersSelect = document.getElementById('studyMembers');
   const adviserSelect = document.getElementById('studyAdviser');
   const year = parseInt(document.getElementById('studyYear').value);
   const dateStr = document.getElementById('studyDate').value.trim();
   const abstract = document.getElementById('studyAbstract').value.trim();
 
-  if (!title || !membersSelect || !adviserSelect || !year || !dateStr) {
+  if (!title || !adviserSelect || !year || !dateStr) {
     alert('Please fill all required fields.');
     return;
   }
 
-  const selectedMemberIds = [...membersSelect.selectedOptions].map(opt => opt.value);
+  const selectedMemberIds = currentMembers.map(m => m.userId).filter(id => id);
   const adviserId = adviserSelect.value;
 
   if (selectedMemberIds.length === 0 || !adviserId) {
@@ -273,9 +342,10 @@ function getFilteredSortedStudies() {
     );
   }
 
-  if (sort === 'oldest') filtered.sort((a, b) => a.year - b.year);
+  const getTime = (s) => new Date(s.submissionDate).getTime();
+  if (sort === 'oldest') filtered.sort((a, b) => getTime(a) - getTime(b));
   else if (sort === 'title') filtered.sort((a, b) => a.title.localeCompare(b.title));
-  else filtered.sort((a, b) => b.year - a.year);
+  else filtered.sort((a, b) => getTime(b) - getTime(a));
 
   return filtered;
 }
@@ -327,9 +397,10 @@ function applyMobileFilters() {
   const sort = document.getElementById('mobileSort')?.value || 'newest';
   let filtered = [...proposals];
   if (year) filtered = filtered.filter(s => s.year === parseInt(year));
-  if (sort === 'oldest') filtered.sort((a, b) => a.year - b.year);
+  const getTime = (s) => new Date(s.submissionDate).getTime();
+  if (sort === 'oldest') filtered.sort((a, b) => getTime(a) - getTime(b));
   else if (sort === 'title') filtered.sort((a, b) => a.title.localeCompare(b.title));
-  else filtered.sort((a, b) => b.year - a.year);
+  else filtered.sort((a, b) => getTime(b) - getTime(a));
 
   document.getElementById('mobileCount').innerHTML = `<strong>${filtered.length}</strong> result${filtered.length !== 1 ? 's' : ''}`;
   renderListContainer('mobileListView', filtered);
@@ -410,10 +481,15 @@ function updateModalFields() {
   modal.querySelector('.modal').innerHTML = `
     <h3 id="modalTitle">Add New Study (BSIT)</h3>
     <div class="field"><label>Title</label><input type="text" id="studyTitle" placeholder="e.g., Smart Attendance System"></div>
-    <div class="field"><label>Members (students)</label><select id="studyMembers" multiple style="height: auto; min-height: 120px;"></select></div>
+    <div class="field">
+      <label>Members (students)</label>
+      <div class="members-list" id="studyMembersList"></div>
+      <button class="btn-add-member" id="addMemberBtn" type="button"><svg viewBox="0 0 14 14" fill="none" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 6px;"><line x1="7" y1="2" x2="7" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="7" x2="12" y2="7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Add Member</button>
+      <p class="field-hint" id="memberHint">Up to 6 members.</p>
+    </div>
     <div class="field"><label>Adviser</label><select id="studyAdviser"></select></div>
     <div class="field"><label>Year Published</label><input type="number" id="studyYear" placeholder="2026"></div>
-    <div class="field"><label>Archive Date (MMM DD, YYYY)</label><input type="text" id="studyDate" placeholder="Apr 18, 2026"></div>
+    <div class="field"><label>Archive Date (MMM DD, YYYY)</label><input type="date" id="studyDate" placeholder="Apr 18, 2026"></div>
     <div class="field"><label>Abstract</label><textarea id="studyAbstract" placeholder="Brief description..."></textarea></div>
     <div class="modal-actions">
       <button class="btn-secondary" id="cancelStudyBtn">Cancel</button>
@@ -422,6 +498,7 @@ function updateModalFields() {
   `;
   document.getElementById('saveStudyBtn').onclick = saveStudy;
   document.getElementById('cancelStudyBtn').onclick = closeStudyModal;
+  document.getElementById('addMemberBtn').onclick = addMember;
 }
 
 // ---------- Init ----------
@@ -429,7 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHamburger();
   renderAuthUI();
   const user = getUser();
-  if (!user || user.role !== 'admin') return;
+  if (!user || user.role !== 'Admin') return;
 
   updateModalFields();
 

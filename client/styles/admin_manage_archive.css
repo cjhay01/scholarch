@@ -333,7 +333,7 @@ button { cursor: pointer; font-family: inherit; background: none; border: none; 
 .modal h3 { font-size: 1.25rem; margin-bottom: 1rem; color: var(--clr-brand); }
 .modal .field { margin-bottom: 1rem; }
 .modal .field label { display: block; font-size: 0.8rem; font-weight: 500; margin-bottom: 0.3rem; color: var(--clr-text-muted); }
-.modal .field input, .modal .field textarea {
+.modal .field input, .modal .field textarea, .modal .field select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--clr-border);
@@ -342,7 +342,7 @@ button { cursor: pointer; font-family: inherit; background: none; border: none; 
   font-size: 0.875rem;
 }
 .modal .field textarea { min-height: 80px; resize: vertical; }
-.modal .field input:focus, .modal .field textarea:focus { outline: none; border-color: var(--clr-brand); box-shadow: 0 0 0 3px rgba(67,109,233,0.1); }
+.modal .field input:focus, .modal .field textarea:focus, .modal .field select:focus { outline: none; border-color: var(--clr-brand); box-shadow: 0 0 0 3px rgba(67,109,233,0.1); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem; }
 .btn-secondary { background: var(--clr-bg); color: var(--clr-text-muted); padding: 0.5rem 1rem; border-radius: var(--radius-full); }
 .btn-danger { background: var(--clr-red); color: white; padding: 0.5rem 1rem; border-radius: var(--radius-full); }
@@ -544,3 +544,105 @@ button { cursor: pointer; font-family: inherit; background: none; border: none; 
   font-size: 0.8rem;
   font-family: var(--font-body);
 }
+
+.members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.member-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: slideIn 0.2s ease both;
+}
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-0.25rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.member-row select {
+    flex: 1;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: 0.5625rem 0.75rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    background: var(--clr-surface);
+    outline: none;
+}
+.member-row select:focus {
+    border-color: var(--clr-brand);
+    box-shadow: 0 0 0 3px rgba(67, 109, 233, 0.1);
+}
+.member-index {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--clr-text-faint);
+    width: 1.25rem;
+    text-align: center;
+    flex-shrink: 0;
+}
+.btn-remove-member {
+    background: none;
+    border: none;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--clr-text-faint);
+    flex-shrink: 0;
+    transition: background var(--ease-fast), color var(--ease-fast);
+}
+.btn-remove-member:hover {
+    background: var(--clr-error-bg);
+    color: var(--clr-error);
+}
+.btn-remove-member svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+.btn-add-member {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: none;
+    border: 1.5px dashed var(--clr-border);
+    border-radius: var(--radius-md);
+    padding: 0.5em 0.875em;
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--clr-text-ghost);
+    transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+    width: 100%;
+    justify-content: center;
+}
+.btn-add-member svg {
+    width: 0.75rem;
+}
+.btn-add-member:hover {
+    border-color: var(--clr-brand);
+    color: var(--clr-brand);
+    background: var(--clr-brand-faint);
+}
+.field-hint {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--clr-text-ghost);
+    margin-top: 0.3rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  color: var(--clr-text-faint);
+  transition: color var(--ease-fast);
+  display: flex;
+  align-items: center;
+}
+.btn-icon:hover { color: var(--clr-text-muted); }
+.btn-icon svg { width: 1rem; height: 1rem; }

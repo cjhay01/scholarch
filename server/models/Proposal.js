@@ -6,8 +6,6 @@ const ProposalSchema = new mongoose.Schema({
     adviser: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     submissionDate: { type: Date },
     abstract: { type: String, required: true },
-    objectives: [{ type: String, required: true }],
-    methodology: [{ type: String, required: true }],
     status: {
         type: String,
         enum: ['Submitted', 'To Be Reviewed', 'Needs Revision', 'Approved', 'Rejected', 'Completed'],

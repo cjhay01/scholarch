@@ -4,7 +4,7 @@ function renderAuthUI() {
   const user = getUser();
 
   // Must be logged in AND be an admin
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== 'Admin') {
     window.location.href = './login_page.html';
     return;
   }
@@ -16,6 +16,8 @@ function renderAuthUI() {
 
   const name = user.name || 'Admin';
   const role = user.role || 'Administrator';
+  const initial = (name.charAt(0) || 'A').toUpperCase();
+
 
   if (authSection) {
     authSection.innerHTML = `
@@ -89,8 +91,8 @@ function renderUserLists() {
   const mobileContainer = document.getElementById('mobileUsersContainer');
   if (!container) return;
 
-  const facultyList = allUsers.filter(u => u.role === 'faculty');
-  const students = allUsers.filter(u => u.role === 'student');
+  const facultyList = allUsers.filter(u => u.role === 'Faculty');
+  const students = allUsers.filter(u => u.role === 'Student');
 
   // Group students by year_and_section
   const groupedStudents = {};
@@ -107,7 +109,7 @@ function renderUserLists() {
   html += `<div class="section-title"><span>Faculty</span><button class="add-btn" id="addFacultyBtnDesktop">+ Add Faculty</button></div>`;
   html += `<div class="user-list" id="facultyList">`;
   facultyList.forEach(f => {
-    html += userCardHTML(f, 'faculty');
+    html += userCardHTML(f, 'Faculty');
   });
   if (facultyList.length === 0) html += '<div class="empty-state">No faculty members found.</div>';
   html += `</div>`;
@@ -117,7 +119,7 @@ function renderUserLists() {
   for (const [section, studentList] of Object.entries(groupedStudents)) {
     html += `<div class="student-group"><div class="group-title">${escapeHtml(section)}</div><div class="user-list">`;
     studentList.forEach(s => {
-      html += userCardHTML(s, 'student');
+      html += userCardHTML(s, 'Student');
     });
     html += `</div></div>`;
   }
@@ -132,14 +134,14 @@ function renderUserLists() {
     let mobileHtml = '';
     mobileHtml += `<div class="section-title"><span>Faculty</span><button class="add-btn" id="addFacultyBtnMobile">+ Add Faculty</button></div><div class="user-list">`;
     facultyList.forEach(f => {
-      mobileHtml += userCardHTML(f, 'faculty');
+      mobileHtml += userCardHTML(f, 'Faculty');
     });
     if (facultyList.length === 0) mobileHtml += '<div class="empty-state">No faculty members found.</div>';
     mobileHtml += `</div><div class="section-title"><span>Students</span></div>`;
     for (const [section, studentList] of Object.entries(groupedStudents)) {
       mobileHtml += `<div class="group-title">${escapeHtml(section)}</div><div class="user-list">`;
       studentList.forEach(s => {
-        mobileHtml += userCardHTML(s, 'student');
+        mobileHtml += userCardHTML(s, 'Student');
       });
       mobileHtml += `</div>`;
     }
@@ -156,7 +158,7 @@ function renderUserLists() {
 function userCardHTML(user, role) {
   const firstName = user.first_name || 'Unknown';
   const lastName = user.last_name || 'Unknown';
-  const badge = role === 'faculty' ? 'Faculty' : 'Student';
+  const badge = role === 'Faculty' ? 'Faculty' : 'Student';
   return `
     <div class="user-list-item" data-id="${user._id}" data-role="${role}" data-section="${escapeHtml(user.year_and_section || '')}">
       <div class="user-info">
@@ -172,7 +174,7 @@ function userCardHTML(user, role) {
       </div>
       <div class="user-actions">
         <button class="edit-btn" data-id="${user._id}" data-role="${role}">Edit</button>
-        ${role === 'faculty' ? `<button class="delete-btn" data-id="${user._id}" data-role="faculty">Delete</button>` : ''}
+        ${role === 'Faculty' ? `<button class="delete-btn" data-id="${user._id}" data-role="Faculty">Delete</button>` : ''}
       </div>
     </div>
   `;
@@ -307,7 +309,7 @@ async function saveNewFaculty() {
     name: `${firstName} ${lastName}`,
     email,
     contact,
-    role: 'faculty'
+    role: 'Faculty'
   };
   if (password) body.password = password;
 
@@ -336,7 +338,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initHamburger();
   renderAuthUI();
   const user = getUser();
-  if (!user || user.role !== 'admin') return;
+  if (!user || user.role !== 'Admin') return;
 
   // Replace edit modal fields (from first/last name to single Name)
   const editModal = document.getElementById('editModal');
@@ -344,7 +346,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     editModal.querySelector('.modal').innerHTML = `
       <h3>Edit User</h3>
       <div class="field"><label>School ID</label><input type="text" id="editUserId" class="readonly-input" readonly></div>
-      <div class="field"><label>Name</label><input type="text" id="editName"></div>
+      <div class="field"><label>First Name</label><input type="text" id="editFirstName"></div>
+      <div class="field"><label>Last Name</label><input type="text" id="editLastName"></div>
       <div class="field"><label>Email</label><input type="email" id="editEmail"></div>
       <div class="field"><label>Contact</label><input type="tel" id="editContact"></div>
       <div class="field"><label>New Password (leave blank to keep current)</label><input type="password" id="editPassword" placeholder="Enter new password"></div>

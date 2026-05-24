@@ -1,44 +1,61 @@
 // faculty_create.js – using backend API (aligned with Pinia store)
 
-// ---------- Storage keys (only for credential history) ----------
-const HISTORY_KEY = 'faculty_create_credential_history';
-
 let credentialHistory = [];
 let pendingStudents = [];        // will be populated from backend
 
-// ---------- Credential history helpers (localStorage) ----------
-function saveHistory() {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(credentialHistory));
-}
-
-function loadHistory() {
-  const stored = localStorage.getItem(HISTORY_KEY);
-  if (stored) {
-    try {
-      credentialHistory = JSON.parse(stored);
-    } catch (e) {
-      credentialHistory = [];
-    }
+// ---------- Credential history helpers (backend) ----------
+async function fetchCredentialHistory() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const response = await fetch(`${API_BASE}/users/my-created`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('Failed to load history');
+    const users = await response.json();
+    
+    // We only want users who HAVE credentials generated
+    const generatedUsers = users.filter(u => u.username);
+    
+    // Group them by section and the day they were updated/created
+    const groups = {};
+    generatedUsers.forEach(u => {
+      // Reconstruct raw password based on the credential generator logic
+      const last4Id = u.user_id.slice(-4);
+      const rawPassword = `${(u.role || 'Student').toLowerCase()}${last4Id}`;
+      
+      const dateObj = new Date(u.updatedAt || u.createdAt);
+      const dateStr = dateObj.toLocaleDateString();
+      const section = u.year_and_section || 'Batch';
+      const key = `${section}_${dateStr}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+           id: key, 
+           timestamp: dateStr, 
+           sectionName: section, 
+           credentialsData: [],
+           sortTime: dateObj.getTime()
+        };
+      }
+      
+      groups[key].credentialsData.push({
+        studentId: u.user_id,
+        firstName: u.first_name,
+        lastName: u.last_name,
+        yearSection: section,
+        email: u.email || '',
+        username: u.username,
+        password: rawPassword
+      });
+    });
+    
+    credentialHistory = Object.values(groups).sort((a,b) => b.sortTime - a.sortTime);
+    renderHistoryList();
+  } catch (err) {
+    console.error(err);
+    showToast(err.message, 'error');
   }
-}
-
-function addToHistoryFromCredentials(credentialsArray, sectionName) {
-  if (!credentialsArray.length) return;
-  const now = new Date();
-  const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-  const id = Date.now();
-  const mapped = credentialsArray.map(c => ({
-    studentId: c.user_id,
-    firstName: c.first_name,
-    lastName: c.last_name,
-    yearSection: sectionName || 'Batch',
-    email: c.email || '',
-    username: c.username,
-    password: c.password
-  }));
-  credentialHistory.unshift({ id, timestamp, sectionName, credentialsData: mapped });
-  saveHistory();
-  renderHistoryList();
 }
 
 // ---------- Render pending students table (desktop & mobile) ----------
@@ -239,19 +256,12 @@ async function generateAllCredentials() {
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Generation failed');
 
-    // data should contain { credentials: [...] }
-    const credentials = data.credentials || [];
-    if (credentials.length > 0) {
-      const sectionName = pendingStudents[0]?.year_and_section || 'Batch';
-      addToHistoryFromCredentials(credentials, sectionName);
-      // Clear local pending list and refresh from backend (should be empty)
-      pendingStudents = [];
-      renderAll();
-      showSuccessModal(`Successfully generated credentials for ${credentials.length} student(s).`);
-      setTimeout(closeModal, 3000);
-    } else {
-      throw new Error('No credentials returned');
-    }
+    // Refresh history from backend
+    pendingStudents = [];
+    renderAll();
+    await fetchCredentialHistory();
+    showSuccessModal(data.message || `Successfully generated credentials.`);
+    setTimeout(closeModal, 3000);
   } catch (err) {
     console.error(err);
     showToast(err.message, 'error');
@@ -265,7 +275,7 @@ let parsedRows = [];
 
 function handleFile(file, isMobile = false) {
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: 'array' });
     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -338,7 +348,7 @@ fileInput.addEventListener('change', async (e) => {
     // Show preview with file name
     previewContainer.style.display = 'block';
     uploadZoneDiv.style.display = 'none';
-    document.getElementById('previewBody').innerHTML = `<tr><td colspan="4">File: ${escapeHtml(file.name)} (${(file.size/1024).toFixed(2)} KB)</td></tr>`;
+    document.getElementById('previewBody').innerHTML = `<tr><td colspan="4">File: ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(2)} KB)</td></tr>`;
     // Store file for confirm
     window.pendingUploadFile = file;
   }
@@ -431,13 +441,13 @@ document.getElementById('addManualBtn').addEventListener('click', async () => {
     last_name: document.getElementById('lastName').value.trim(),
     year_and_section: document.getElementById('yearSection').value.trim(),
     email: document.getElementById('email').value.trim(),
-    contact: document.getElementById('contact').value.trim(),
+    contact_number: document.getElementById('contact').value.trim(),
     role: 'Student',
     bio: '',
     proposals: []
   };
   // Basic validation
-  if (!student.user_id || !student.first_name || !student.last_name || !student.year_and_section || !student.email || !student.contact) {
+  if (!student.user_id || !student.first_name || !student.last_name || !student.year_and_section || !student.email || !student.contact_number) {
     showToast('All fields required', 'error');
     return;
   }
@@ -461,12 +471,12 @@ document.getElementById('mobileAddManualBtn').addEventListener('click', async ()
     last_name: document.getElementById('mobileLastName').value.trim(),
     year_and_section: document.getElementById('mobileYearSection').value.trim(),
     email: document.getElementById('mobileEmail').value.trim(),
-    contact: document.getElementById('mobileContact').value.trim(),
+    contact_number: document.getElementById('mobileContact').value.trim(),
     role: 'Student',
     bio: '',
     proposals: []
   };
-  if (!student.user_id || !student.first_name || !student.last_name || !student.year_and_section || !student.email || !student.contact) {
+  if (!student.user_id || !student.first_name || !student.last_name || !student.year_and_section || !student.email || !student.contact_number) {
     showToast('All fields required', 'error');
     return;
   }
@@ -499,28 +509,21 @@ function renderHistoryList() {
   let html = '<ul class="history-list">';
   credentialHistory.forEach(entry => {
     const displayName = `${entry.sectionName} - ${entry.timestamp}`;
-    html += `<li class="history-item" data-id="${entry.id}"><div class="history-info"><div class="history-filename">${escapeHtml(displayName)}</div><div class="history-timestamp">${entry.timestamp}</div></div><div class="history-actions"><button class="btn btn-outline history-csv" data-id="${entry.id}">CSV</button><button class="btn btn-outline history-excel" data-id="${entry.id}">Excel</button><button class="btn-icon-danger history-delete" data-id="${entry.id}" title="Delete"><svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button></div></li>`;
+    html += `<li class="history-item" data-id="${entry.id}"><div class="history-info"><div class="history-filename">${escapeHtml(displayName)}</div><div class="history-timestamp">${entry.timestamp}</div></div><div class="history-actions"><button class="btn btn-outline history-csv" data-id="${entry.id}">CSV</button><button class="btn btn-outline history-excel" data-id="${entry.id}">Excel</button></div></li>`;
   });
   html += '</ul>';
   container.innerHTML = html;
   if (mobileContainer) mobileContainer.innerHTML = html;
 
   function csvHandler(e) {
-    const id = parseInt(e.currentTarget.getAttribute('data-id'));
+    const id = e.currentTarget.getAttribute('data-id');
     const entry = credentialHistory.find(e => e.id === id);
     if (entry) downloadCSV(entry.credentialsData, entry.sectionName.replace(/\s+/g, '_') + '_' + entry.timestamp.replace(/[,\s:]/g, '_'));
   }
   function excelHandler(e) {
-    const id = parseInt(e.currentTarget.getAttribute('data-id'));
+    const id = e.currentTarget.getAttribute('data-id');
     const entry = credentialHistory.find(e => e.id === id);
     if (entry) downloadExcel(entry.credentialsData, entry.sectionName.replace(/\s+/g, '_') + '_' + entry.timestamp.replace(/[,\s:]/g, '_'));
-  }
-  function deleteHandler(e) {
-    const id = parseInt(e.currentTarget.getAttribute('data-id'));
-    credentialHistory = credentialHistory.filter(e => e.id !== id);
-    saveHistory();
-    renderHistoryList();
-    showToast('History entry removed.', 'info');
   }
 
   container.querySelectorAll('.history-csv').forEach(btn => {
@@ -531,10 +534,6 @@ function renderHistoryList() {
     btn.removeEventListener('click', excelHandler);
     btn.addEventListener('click', excelHandler);
   });
-  container.querySelectorAll('.history-delete').forEach(btn => {
-    btn.removeEventListener('click', deleteHandler);
-    btn.addEventListener('click', deleteHandler);
-  });
   if (mobileContainer) {
     mobileContainer.querySelectorAll('.history-csv').forEach(btn => {
       btn.removeEventListener('click', csvHandler);
@@ -543,10 +542,6 @@ function renderHistoryList() {
     mobileContainer.querySelectorAll('.history-excel').forEach(btn => {
       btn.removeEventListener('click', excelHandler);
       btn.addEventListener('click', excelHandler);
-    });
-    mobileContainer.querySelectorAll('.history-delete').forEach(btn => {
-      btn.removeEventListener('click', deleteHandler);
-      btn.addEventListener('click', deleteHandler);
     });
   }
 }
@@ -600,13 +595,70 @@ function showToast(msg, type = 'info') {
   setTimeout(() => toast.remove(), 3000);
 }
 
+function renderAuthUI() {
+  const user = getUser();
+  const authSection = document.getElementById('authSection');
+  const topbarAuth = document.getElementById('topbarAuth');
+  const mobileAuth = document.getElementById('mobileAuth');
+  const mobileAvatar = document.getElementById('mobileAvatar');
+
+  if (user) {
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    const name = (firstName + ' ' + lastName).trim() || user.name || 'Faculty';
+    const role = user.role || 'Faculty';
+    const initial = (firstName.charAt(0) || lastName.charAt(0) || 'F').toUpperCase();
+
+    if (authSection) {
+      authSection.innerHTML = `
+        <div class="avatar-circle">${initial}</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">${escapeHtml(name)}</div>
+          <div class="sidebar-user-role">${escapeHtml(role)}</div>
+        </div>
+        <button class="btn-icon" id="desktopLogoutBtn">
+          <svg viewBox="0 0 16 16" fill="none">
+            <path d="M10 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <line x1="7" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            <polyline points="11,5 14,8 11,11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      `;
+      document.getElementById('desktopLogoutBtn')?.addEventListener('click', clearAuthAndRedirect);
+    }
+
+    if (topbarAuth) {
+      topbarAuth.innerHTML = `
+        <button class="btn-notif"><svg viewBox="0 0 18 18" fill="none"><path d="M9 1.5A5.5 5.5 0 0 0 3.5 7v3.5L2 12h14l-1.5-1.5V7A5.5 5.5 0 0 0 9 1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="notif-badge"></span></button>
+        <button class="avatar-btn">${initial}</button>
+      `;
+    }
+
+    if (mobileAuth) {
+      mobileAuth.innerHTML = `<a href="#" id="mobileLogoutBtn" class="btn-nav-auth">Log out</a>`;
+      document.getElementById('mobileLogoutBtn')?.addEventListener('click', clearAuthAndRedirect);
+    }
+
+    if (mobileAvatar) mobileAvatar.textContent = initial;
+  } else {
+    if (authSection) {
+      authSection.innerHTML = '<a href="./login_page.html" class="login-btn">Log in</a>';
+    }
+    if (topbarAuth) {
+      topbarAuth.innerHTML = '<a href="./login_page.html" class="topbar-login-btn">Log in</a>';
+    }
+    if (mobileAuth) {
+      mobileAuth.innerHTML = '<a href="./login_page.html" class="btn-nav-auth">Log in</a>';
+    }
+  }
+}
+
 // ---------- Initialization ----------
 document.addEventListener('DOMContentLoaded', async () => {
-  loadHistory();
   renderAuthUI();      // from util.js
   initHamburger();     // from util.js
   await fetchPendingStudents();
-  renderHistoryList();
+  await fetchCredentialHistory();
 
   // Modal close button
   const modalCloseBtn = document.getElementById('modalCloseBtn');

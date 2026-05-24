@@ -2,13 +2,11 @@ const Proposal = require('../models/Proposal');
 
 // Create a new proposal
 const createProposal = async (req, res) => {
-    const { title, members, adviser, abstract, objectives, methodology } = req.body;
+    const { title, members, adviser, abstract } = req.body;
 
     try {
         // Parse JSON strings if sent via FormData
         const parsedMembers = typeof members === 'string' ? JSON.parse(members) : members;
-        const parsedObjectives = typeof objectives === 'string' ? JSON.parse(objectives) : objectives;
-        const parsedMethodology = typeof methodology === 'string' ? JSON.parse(methodology) : methodology;
 
         // Ensure the creator is always included as a member
         const memberIds = Array.isArray(parsedMembers) ? [...parsedMembers] : [];
@@ -20,10 +18,8 @@ const createProposal = async (req, res) => {
         const proposalData = {
             title,
             members: memberIds,
-            adviser,
+            adviser: adviser || req.user.adviser_id,
             abstract,
-            objectives: parsedObjectives,
-            methodology: parsedMethodology,
             submissionDate: Date.now()
         };
 
@@ -41,7 +37,7 @@ const createProposal = async (req, res) => {
 // Edit proposal info
 const updateProposal = async (req, res) => {
     const { id } = req.params;
-    const { title, abstract, objectives, methodology, members } = req.body;
+    const { title, abstract, objectives, methodology, members, adviser, submissionDate, approvalDate } = req.body;
 
     try {
         const proposal = await Proposal.findById(id);
@@ -54,8 +50,8 @@ const updateProposal = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to edit this proposal' });
         }
 
-        // Prevent edits if status is beyond "Needs Revision" or "Submitted"
-        if (proposal.status === 'Approved' || proposal.status === 'Completed') {
+        // Prevent edits if status is beyond "Needs Revision" or "Submitted", unless Admin
+        if (req.user.role !== 'Admin' && (proposal.status === 'Approved' || proposal.status === 'Completed')) {
             return res.status(400).json({ message: 'Cannot edit an approved or completed proposal' });
         }
 
@@ -64,6 +60,9 @@ const updateProposal = async (req, res) => {
         if (objectives) proposal.objectives = typeof objectives === 'string' ? JSON.parse(objectives) : objectives;
         if (methodology) proposal.methodology = typeof methodology === 'string' ? JSON.parse(methodology) : methodology;
         if (members) proposal.members = typeof members === 'string' ? JSON.parse(members) : members;
+        if (adviser) proposal.adviser = adviser;
+        if (submissionDate) proposal.submissionDate = submissionDate;
+        if (approvalDate) proposal.approvalDate = approvalDate;
         if (req.file) proposal.file = req.file.filename;
 
         const updatedProposal = await proposal.save();
@@ -96,6 +95,7 @@ const getProposals = async (req, res) => {
         const proposals = await Proposal.find(query)
             .populate('members', 'first_name last_name user_id')
             .populate('adviser', 'first_name last_name')
+            .populate('feedback.reviewer', 'first_name last_name role')
             .sort({ submissionDate: -1 });
 
         res.json(proposals);
@@ -217,6 +217,38 @@ const searchArchives = async (req, res) => {
     }
 };
 
+// Get public proposals (Approved and Completed)
+const getPublicProposals = async (req, res) => {
+    try {
+        const proposals = await Proposal.find({ status: { $in: ['Approved', 'Completed'] } })
+            .populate('members', 'first_name last_name user_id')
+            .populate('adviser', 'first_name last_name')
+            .sort({ submissionDate: -1 });
+        res.json(proposals);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get a single public proposal by ID
+const getPublicProposalById = async (req, res) => {
+    try {
+        const proposal = await Proposal.findById(req.params.id)
+            .populate('members', 'first_name last_name user_id')
+            .populate('adviser', 'first_name last_name');
+
+        if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+
+        if (proposal.status !== 'Approved' && proposal.status !== 'Completed') {
+            return res.status(403).json({ message: 'This proposal is not public' });
+        }
+
+        res.json(proposal);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createProposal,
     updateProposal,
@@ -224,5 +256,7 @@ module.exports = {
     getProposalById,
     updateProposalStatus,
     addFeedback,
-    searchArchives
+    searchArchives,
+    getPublicProposals,
+    getPublicProposalById
 };

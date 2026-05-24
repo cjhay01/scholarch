@@ -245,7 +245,7 @@ function openProposalModal(proposal) {
     const downloadBtn = document.getElementById('modalDownloadBtn');
     downloadBtn.style.display = 'flex';
     downloadBtn.onclick = () => {
-      window.open(`${API_BASE}/uploads/${proposal.file}`, '_blank');
+      window.open(`${window.location.origin}/uploads/proposals/${proposal.file}`, '_blank');
     };
   } else {
     document.getElementById('modalFileLabel').innerText = 'No document attached';

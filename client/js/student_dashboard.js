@@ -4,7 +4,7 @@
 let currentStep = 1;
 const TOTAL_STEPS = 2;
 const MAX_MEMBERS = 6;
-let members = [];        
+let members = [];
 let uploadedFile = null;
 let currentUser = null;
 let allProposals = [];
@@ -69,7 +69,13 @@ async function loadCurrentUser() {
 
 async function loadProposals() {
   if (!currentUser) return;
-  allProposals = currentUser.proposals || [];
+  try {
+    const response = await fetchWithAuth(`/proposals`);
+    allProposals = await response.json();
+  } catch (err) {
+    console.error('Failed to load proposals:', err);
+    allProposals = [];
+  }
   renderDesktop();
   renderMobile();
   updateStats();
@@ -77,22 +83,40 @@ async function loadProposals() {
 }
 
 // ---------- Fetch classmates from same section ----------
-async function loadClassmates() {               
+async function loadClassmates() {
   if (!currentUser || !currentUser.year_and_section) return;
   try {
     const response = await fetchWithAuth(`/users?section=${encodeURIComponent(currentUser.year_and_section)}&role=Student`);
     const users = await response.json();
     classmates = users.map(u => ({
-      id: u.user_id,
-      name: u.first_name
+      id: u._id,
+      name: `${u.first_name} ${u.last_name}`
     }));
-    const currentId = currentUser.user_id;
+    const currentId = currentUser._id;
     if (!classmates.find(c => c.id === currentId)) {
-      classmates.push({ id: currentId, name: currentUser.first_name });
+      classmates.push({ id: currentId, name: `${currentUser.first_name} ${currentUser.last_name}` });
     }
   } catch (err) {
     console.error('Failed to load classmates:', err);
-    classmates = [{ id: currentUser.user_id, name: currentUser.first_name }];
+    classmates = [{ id: currentUser._id, name: `${currentUser.first_name} ${currentUser.last_name}` }];
+  }
+}
+
+// ---------- Fetch assigned adviser ----------
+async function loadAdviser() {
+  const el = document.getElementById('assigned-adviser');
+  const el2 = document.getElementById('review-adviser');
+  if (!el) return;
+  try {
+    const response = await fetchWithAuth('/users/my-adviser');
+    if (!response.ok) throw new Error('Adviser not found');
+    const adviser = await response.json();
+    el.textContent = `${adviser.first_name} ${adviser.last_name}`;
+    el2.textContent = `${adviser.first_name} ${adviser.last_name}`;
+  } catch (err) {
+    console.error('Failed to load adviser:', err);
+    el.textContent = 'Not assigned';
+    el2.textContent = 'Not assigned';
   }
 }
 
@@ -219,7 +243,7 @@ function updateWelcomeMessage() {
   if (!currentUser) return;
   const reviewCount = allProposals.filter(p => p.status === 'Submitted').length;
   const revisionCount = allProposals.filter(p => p.status === 'Needs Revision').length;
-  const firstName = currentUser.name.split(' ')[0];
+  const firstName = currentUser.first_name;
   document.getElementById('welcome-heading').innerHTML = `Welcome back, ${firstName} 👋`;
   document.getElementById('welcome-sub').innerHTML = `You have <strong>${reviewCount}</strong> proposal(s) awaiting adviser feedback, <strong>${revisionCount}</strong> revision requested.`;
   document.getElementById('mobile-greeting-name').innerText = firstName;
@@ -228,10 +252,10 @@ function updateWelcomeMessage() {
 
 // ---------- Member dropdown helpers (unchanged) ----------
 function getCurrentUserFullName() {
-  return currentUser ? currentUser.name : 'Student';
+  return currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'Student';
 }
 function getCurrentUserId() {
-  return currentUser ? currentUser.user_id : '';
+  return currentUser ? currentUser._id : '';
 }
 
 function initMembers() {
@@ -257,14 +281,16 @@ function renderMembers() {
       select.disabled = true;
       select.style.opacity = '0.6';
     }
+    const currentUserId = getCurrentUserId();
     allStudents.forEach(student => {
+      if (!member.isCurrentUser && student.id === currentUserId) return;
       const option = document.createElement('option');
       option.value = student.id;
       option.textContent = student.name;
       if (student.id === member.userId) option.selected = true;
       select.appendChild(option);
     });
-    select.addEventListener('change', function() {
+    select.addEventListener('change', function () {
       const selectedId = this.value;
       const selectedName = allStudents.find(s => s.id === selectedId)?.name || '';
       members[idx] = { userId: selectedId, name: selectedName, isCurrentUser: false };
@@ -519,7 +545,7 @@ async function handleSubmit() {
   const formData = new FormData();
   formData.append('title', document.getElementById('proposal-title').value.trim());
   formData.append('abstract', document.getElementById('abstract').value.trim());
-  const memberIds = members.filter(m => !m.isCurrentUser).map(m => m.userId);
+  const memberIds = members.map(m => m.userId);
   formData.append('members', JSON.stringify(memberIds));
   if (uploadedFile) {
     formData.append('file', uploadedFile);
@@ -556,10 +582,10 @@ function openProposalViewModal(proposal) {
   badge.className = `status-badge ${statusClass}`;
   badge.textContent = proposal.status;
   document.getElementById('view-doc-name').textContent = proposal.file ? proposal.file : 'No document attached';
-  document.getElementById('view-doc-size').textContent = proposal.file ? 'PDF' : '';
+  document.getElementById('view-doc-size').textContent = proposal.file ? proposal.file.split('.').pop().toUpperCase() : '';
   document.getElementById('view-abstract').textContent = proposal.abstract || 'No abstract provided.';
   const prevFeedbackDiv = document.getElementById('view-previous-feedback');
-  if (proposal.status === 'Needs Revision' && proposal.feedback && proposal.feedback.length) {
+  if (/* proposal.status === 'Needs Revision' &&  */proposal.feedback && proposal.feedback.length) {
     const lastFeedback = proposal.feedback[proposal.feedback.length - 1];
     document.getElementById('view-feedback-text').textContent = lastFeedback.comment;
     prevFeedbackDiv.style.display = 'block';
@@ -568,7 +594,7 @@ function openProposalViewModal(proposal) {
   }
   document.getElementById('view-download-btn').onclick = () => {
     if (proposal.file) {
-      window.open(`${API_BASE}/uploads/${proposal.file}`, '_blank');
+      window.open(`${window.location.origin}/uploads/proposals/${proposal.file}`, '_blank');
     } else {
       alert('No document attached.');
     }
@@ -685,6 +711,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     await loadClassmates();
+    await loadAdviser();
     await loadProposals();
 
     initMembers();
@@ -709,7 +736,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // File upload
     const uploadZone = document.getElementById('upload-zone');
     const fileInput = document.getElementById('file-upload');
-    uploadZone?.addEventListener('click', () => fileInput?.click());
+    uploadZone?.addEventListener('click', (e) => {
+      if (e.target !== fileInput) fileInput?.click();
+    });
     uploadZone?.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
     uploadZone?.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
     uploadZone?.addEventListener('drop', e => {

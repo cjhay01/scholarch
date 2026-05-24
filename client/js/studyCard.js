@@ -3,9 +3,16 @@
 // ---------- Fetch proposal by ID ----------
 async function loadProposal(proposalId) {
   const token = getToken();
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
   try {
-    const response = await fetch(`${API_BASE}/proposals/${proposalId}`, { headers });
+    let url = `${API_BASE}/proposals/${proposalId}`;
+    let headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      url = `${API_BASE}/proposals/public/${proposalId}`;
+    }
+    
+    const response = await fetch(url, { headers });
     if (!response.ok) throw new Error('Proposal not found');
     const proposal = await response.json();
     currentProposal = proposal;
@@ -65,7 +72,7 @@ function renderProposal(proposal) {
   // File download (desktop)
   const desktopDownloadBtn = document.getElementById('desktopDownloadBtn');
   if (proposal.file) {
-    const fileUrl = `${API_BASE}/uploads/${proposal.file}`;
+    const fileUrl = `${window.location.origin}/uploads/proposals/${proposal.file}`;
     desktopDownloadBtn.onclick = () => window.open(fileUrl, '_blank');
     document.querySelector('.pdf-filename').textContent = proposal.file;
     document.querySelector('.pdf-size').textContent = 'PDF';
@@ -102,7 +109,7 @@ function renderProposal(proposal) {
   // Mobile file download
   const mobileDownloadBtn = document.getElementById('mobileDownloadBtn');
   if (proposal.file) {
-    const fileUrl = `${API_BASE}/uploads/${proposal.file}`;
+    const fileUrl = `${window.location.origin}/uploads/proposals/${proposal.file}`;
     mobileDownloadBtn.onclick = () => window.open(fileUrl, '_blank');
     mobileDownloadBtn.querySelector('.filename').textContent = proposal.file;
   } else {

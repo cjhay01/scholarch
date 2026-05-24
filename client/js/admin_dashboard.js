@@ -18,7 +18,7 @@ function renderAuthUI() {
   const mobileAvatar = document.getElementById('mobileAvatar');
 
   // Admin only
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== 'Admin') {
     window.location.href = './login_page.html';
     return;
   }
@@ -266,7 +266,7 @@ async function initDashboard() {
   renderAuthUI();
 
   const user = getUser();
-  if (!user || user.role !== 'admin') return;
+  if (!user || user.role !== 'Admin') return;
 
   const [userCount, studyCount, userGrowth] = await Promise.all([
     fetchUserCount(),

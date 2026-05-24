@@ -49,16 +49,23 @@ const pdfStorage = multer.diskStorage({
 });
 
 const pdfFilter = (req, file, cb) => {
-    if (file.mimetype === 'application/pdf' || path.extname(file.originalname).toLowerCase() === '.pdf') {
+    const allowedMimetypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedMimetypes.includes(file.mimetype) || ['.pdf', '.doc', '.docx'].includes(ext)) {
         cb(null, true);
     } else {
-        cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Only PDF files are allowed for proposals.'));
+        cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Only PDF, DOC, and DOCX files are allowed for proposals.'));
     }
 };
 
 const uploadPDF = multer({
     storage: pdfStorage,
-    limits: { fileSize: 15 * 1024 * 1024 },
+    limits: { fileSize: 20 * 1024 * 1024 },
     fileFilter: pdfFilter
 });
 

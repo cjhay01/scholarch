@@ -4,10 +4,16 @@
 // ---------- Fetch proposals (only approved/completed) ----------
 async function fetchProposals() {
   const token = getToken();
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
   try {
-    // Fetch proposals where status is Approved or Completed
-    const response = await fetch(`${API_BASE}/proposals?status=Approved&status=Completed`, { headers });
+    let url = `${API_BASE}/proposals?status=Approved&status=Completed`;
+    let headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      url = `${API_BASE}/proposals/public`;
+    }
+    
+    const response = await fetch(url, { headers });
     if (!response.ok) throw new Error('Failed to fetch studies');
     const data = await response.json();
     return data;
@@ -80,7 +86,7 @@ function updateSidebarLinks(role) {
         <span class="nav-section-label nav-section-label-student">Student Management</span>
         <a href="./faculty_create.html" class="nav-item" id="createAccountsLink"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2"/></svg>Create Student Accounts</a>
       `;
-      const accountSection = sidebarNav.querySelector('.nav-section-label:last-of-type');
+      const accountSection = sidebarNav.querySelector('.nav-section-label:nth-of-type(2)');
       if (accountSection) {
         accountSection.insertAdjacentHTML('beforebegin', studentMgmtHtml);
       } else {
@@ -358,9 +364,10 @@ function applyDesktopFilters() {
     return matchYear && matchSearch;
   });
 
-  if (sort === 'oldest') desktopFiltered.sort((a, b) => (a.year || a.submissionDate) - (b.year || b.submissionDate));
+  const getTime = (s) => new Date(s.submissionDate).getTime();
+  if (sort === 'oldest') desktopFiltered.sort((a, b) => getTime(a) - getTime(b));
   else if (sort === 'title') desktopFiltered.sort((a, b) => a.title.localeCompare(b.title));
-  else desktopFiltered.sort((a, b) => (b.year || b.submissionDate) - (a.year || a.submissionDate));
+  else desktopFiltered.sort((a, b) => getTime(b) - getTime(a));
 
   const countSpan = document.getElementById('desktopCount');
   if (countSpan) countSpan.innerHTML = `<strong>${desktopFiltered.length}</strong> result${desktopFiltered.length !== 1 ? 's' : ''}`;
@@ -434,9 +441,10 @@ function applyMobileFilters() {
     return matchYear && matchSearch;
   });
 
-  if (sort === 'oldest') mobileFiltered.sort((a, b) => (a.year || a.submissionDate) - (b.year || b.submissionDate));
+  const getTime = (s) => new Date(s.submissionDate).getTime();
+  if (sort === 'oldest') mobileFiltered.sort((a, b) => getTime(a) - getTime(b));
   else if (sort === 'title') mobileFiltered.sort((a, b) => a.title.localeCompare(b.title));
-  else mobileFiltered.sort((a, b) => (b.year || b.submissionDate) - (a.year || a.submissionDate));
+  else mobileFiltered.sort((a, b) => getTime(b) - getTime(a));
 
   const countSpan = document.getElementById('mobileCount');
   if (countSpan) countSpan.innerHTML = `<strong>${mobileFiltered.length}</strong> result${mobileFiltered.length !== 1 ? 's' : ''}`;

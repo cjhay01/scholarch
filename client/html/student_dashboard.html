@@ -50,8 +50,8 @@
     <div class="mobile-greeting-card">
       <div class="mobile-greeting-text">
         <p class="mobile-greeting-hi">Good morning,</p>
-        <h1 class="mobile-greeting-name">Student</h1>
-        <p class="mobile-greeting-sub">Loading proposals...</p>
+        <h1 class="mobile-greeting-name" id="mobile-greeting-name">Student</h1>
+        <p class="mobile-greeting-sub" id="mobile-greeting-sub">Loading proposals...</p>
         <button class="mobile-submit-btn open-modal-btn">Submit New Proposal</button>
       </div>
       <div class="mobile-avatar">ST</div>
@@ -130,7 +130,7 @@
           </div>
           <div class="field">
             <label>Assigned Professor</label>
-            <div class="static-professor"><span>Ms. Glicel Marie Reyes</span></div>
+            <div class="static-professor"><span id="assigned-adviser">Loading...</span></div>
           </div>
         </fieldset>
       </section>
@@ -157,7 +157,7 @@
             <div class="review-row"><span class="review-row-label">Title</span><span class="review-row-value" id="review-title">—</span></div>
             <div class="review-row"><span class="review-row-label">Abstract</span><span class="review-row-value" id="review-abstract">—</span></div>
             <div class="review-row"><span class="review-row-label">Members</span><span class="review-row-value" id="review-members">—</span></div>
-            <div class="review-row"><span class="review-row-label">Adviser</span><span class="review-row-value">Prof. R. Mendoza</span></div>
+            <div class="review-row"><span class="review-row-label">Adviser</span><span class="review-row-value" id="review-adviser">—</span></div>
           </div>
         </fieldset>
       </section>
@@ -190,7 +190,7 @@
         <div class="doc-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="1.5" width="11" height="15" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M11 1.5v4h4" stroke="currentColor" stroke-width="1.4"/><line x1="6" y1="9" x2="11" y2="9" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="11.5" x2="11" y2="11.5" stroke="currentColor" stroke-width="1.2"/><line x1="6" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.2"/></svg></div>
         <div class="doc-info"><div class="doc-label" id="view-doc-name">proposal_document.pdf</div><div class="doc-sub" id="view-doc-size">2.4 MB · PDF</div></div>
       </div>
-      <button class="btn-download" id="view-download-btn">Download PDF</button>
+      <button class="btn-download" id="view-download-btn">Download Document</button>
       <div class="modal-section-label">Abstract</div>
       <div class="modal-abstract" id="view-abstract"></div>
       <div id="view-previous-feedback" style="display: none;">
@@ -240,7 +240,7 @@
   </header>
 
   <main class="main">
-    <div class="welcome-banner"><h1 class="welcome-heading">Welcome back, Student 👋</h1><p class="welcome-sub">Loading proposals...</p></div>
+    <div class="welcome-banner"><h1 id="welcome-heading" class="welcome-heading">Welcome back, Student 👋</h1><p id="welcome-sub" class="welcome-sub">Loading proposals...</p></div>
     <div class="stats-grid">
       <div class="stat-card is-active" data-filter="all"><div class="stat-label">All</div><div class="stat-count">0</div></div>
       <div class="stat-card" data-filter="Submitted"><div class="stat-label"><span class="stat-dot submitted"></span>Submitted</div><div class="stat-count">0</div></div>
