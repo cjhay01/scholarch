@@ -359,7 +359,7 @@ async function createAllAccounts() {
   showLoadingModal();
 
   try {
-    const response = await fetch(`${API_BASE}/create`, {
+    const response = await fetch(`${API_BASE}/users/generate-all-credentials`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

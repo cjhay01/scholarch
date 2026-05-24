@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
     last_name: { type: String, required: true },
     username: { type: String, required: true, unique: true },
     password: { type: String },
+    email: { type: String },
     contact_number: { type: String },
     bio: { type: String },
     role: {
@@ -14,9 +15,21 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     department: { type: String, default: 'BSIT' },
+    year_and_section: { type: String },
     adviser_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     creator_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     proposals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Proposal' }]
 }, { timestamps: true });
+
+// Add virtual 'name' and 'contact' fields so every JSON response
+// includes the shape the frontend expects.
+userSchema.set('toJSON', {
+    virtuals: true,
+    transform: function (_doc, ret) {
+        ret.name = `${ret.first_name} ${ret.last_name}`;
+        ret.contact = ret.contact_number || '';
+        return ret;
+    }
+});
 
 module.exports = mongoose.model('User', userSchema);

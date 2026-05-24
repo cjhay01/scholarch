@@ -8,7 +8,7 @@ function redirectByRole(role) {
 
 async function handleLogin(username, password, remember) {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth`, {
+    const response = await fetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
