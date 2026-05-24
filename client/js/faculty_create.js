@@ -1,33 +1,4 @@
-// faculty_create.js – account creation + login state + API integration
-
-function getUser() {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = 'landing_page.html';
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
+// faculty_create.js 
 
 function renderAuthUI() {
   const user = getUser();
@@ -381,7 +352,7 @@ async function createAllAccounts() {
   showLoadingModal();
 
   try {
-    const response = await fetch('/api/create', {
+    const response = await fetch(`${API_BASE}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -665,30 +636,9 @@ if (modalCloseBtn) modalCloseBtn.addEventListener('click', () => {
   document.getElementById('actionModal').classList.remove('is-open');
 });
 
-// Hamburger
-const hamburger = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
-if (hamburger && mobileNav) {
-  hamburger.addEventListener('click', () => {
-    const isOpen = mobileNav.classList.contains('is-open');
-    if (!isOpen) {
-      mobileNav.style.display = 'flex';
-      setTimeout(() => mobileNav.classList.add('is-open'), 10);
-      hamburger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      mobileNav.classList.remove('is-open');
-      hamburger.classList.remove('open');
-      document.body.style.overflow = '';
-      mobileNav.addEventListener('transitionend', () => {
-        if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-      }, { once: true });
-    }
-  });
-}
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+  initHamburger();
   renderAuthUI();
   renderAll();
 });

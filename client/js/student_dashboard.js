@@ -1,8 +1,10 @@
+// student_dashboard.js
+
 // ---------- Global variables ----------
 let currentStep = 1;
 const TOTAL_STEPS = 2;
 const MAX_MEMBERS = 6;
-let members = [];          // { userId, name, isCurrentUser }
+let members = [];        
 let uploadedFile = null;
 let currentUser = null;
 let allProposals = [];
@@ -14,65 +16,6 @@ let isResubmit = false;
 let currentResubmitProposalId = null;
 let classmates = [];
 
-// ---------- API base ----------
-const API_BASE = window.location.origin + '/api';
-
-// ---------- Helper functions ----------
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function getUserFromStorage() {
-  const token = getToken();
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-async function fetchWithAuth(url, options = {}) {
-  const token = getToken();
-  if (!token) throw new Error('No authentication token');
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-    'Authorization': `Bearer ${token}`
-  };
-  const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
-  if (response.status === 401) {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = './index.html';
-    throw new Error('Session expired');
-  }
-  return response;
-}
-
-function showToast(msg, type = 'info') {
-  const toast = document.createElement('div');
-  toast.innerText = msg;
-  toast.style.position = 'fixed';
-  toast.style.bottom = '20px';
-  toast.style.right = '20px';
-  toast.style.backgroundColor = type === 'success' ? '#16a34a' : (type === 'error' ? '#dc2626' : '#436DE9');
-  toast.style.color = 'white';
-  toast.style.padding = '0.75rem 1.25rem';
-  toast.style.borderRadius = 'var(--radius-full)';
-  toast.style.fontSize = '0.875rem';
-  toast.style.zIndex = '9999';
-  toast.style.boxShadow = 'var(--shadow-md)';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
 
 // ---------- Update all UI elements from currentUser ----------
 function updateUserUI() {
@@ -133,7 +76,7 @@ async function loadProposals() {
 }
 
 // ---------- Fetch classmates from same section ----------
-async function loadClassmates() {
+async function loadClassmates() {               
   if (!currentUser || !currentUser.year_and_section) return;
   try {
     const response = await fetchWithAuth(`/users?section=${encodeURIComponent(currentUser.year_and_section)}&role=Student`);
@@ -731,32 +674,9 @@ function logout() {
   window.location.href = './index.html';
 }
 
-// ---------- Hamburger menu ----------
-function initHamburger() {
-  const hamburger = document.getElementById('hamburger');
-  const mobileNav = document.getElementById('mobile-nav');
-  if (hamburger && mobileNav) {
-    hamburger.addEventListener('click', () => {
-      const isOpen = mobileNav.classList.contains('is-open');
-      if (!isOpen) {
-        mobileNav.style.display = 'flex';
-        setTimeout(() => mobileNav.classList.add('is-open'), 10);
-        hamburger.classList.add('open');
-        document.body.style.overflow = 'hidden';
-      } else {
-        mobileNav.classList.remove('is-open');
-        hamburger.classList.remove('open');
-        document.body.style.overflow = '';
-        mobileNav.addEventListener('transitionend', () => {
-          if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-        }, { once: true });
-      }
-    });
-  }
-}
-
 // ---------- Initialization ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  initHamburger();
   try {
     await loadCurrentUser();
     if (!currentUser) {

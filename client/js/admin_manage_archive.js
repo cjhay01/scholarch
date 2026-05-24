@@ -1,37 +1,5 @@
 // admin_manage_archive.js – dynamic admin archive management (with logout confirmation)
 
-const API_BASE = window.location.origin + '/api';
-
-// ---------- Helpers ----------
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function getUser() {
-  const token = getToken();
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = './login_page.html';
-}
-
 // ---------- Logout confirmation modal ----------
 function showLogoutModal() {
   document.getElementById('logoutModal').classList.add('is-open');
@@ -458,6 +426,7 @@ function updateModalFields() {
 
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  initHamburger();
   renderAuthUI();
   const user = getUser();
   if (!user || user.role !== 'admin') return;
@@ -485,25 +454,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 });
-
-// Hamburger menu (unchanged)
-const hamburger = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
-if (hamburger && mobileNav) {
-  hamburger.addEventListener('click', () => {
-    const isOpen = mobileNav.classList.contains('is-open');
-    if (!isOpen) {
-      mobileNav.style.display = 'flex';
-      setTimeout(() => mobileNav.classList.add('is-open'), 10);
-      hamburger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      mobileNav.classList.remove('is-open');
-      hamburger.classList.remove('open');
-      document.body.style.overflow = '';
-      mobileNav.addEventListener('transitionend', () => {
-        if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-      }, { once: true });
-    }
-  });
-}

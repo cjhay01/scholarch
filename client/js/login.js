@@ -1,4 +1,10 @@
-const API_BASE_URL = `${window.location.origin}/api`;
+function redirectByRole(role) {
+  const r = role.toLowerCase();
+  if (r === 'admin') window.location.href = '/admin_dashboard.html';
+  else if (r === 'faculty') window.location.href = '/faculty_dashboard.html';
+  else window.location.href = '/student_dashboard.html';
+}
+
 
 async function handleLogin(username, password, remember) {
   try {
@@ -33,9 +39,7 @@ async function handleLogin(username, password, remember) {
     }
 
     const role = data.role.toLowerCase();
-    if (role === 'admin') window.location.href = '/admin_dashboard.html';
-    else if (role === 'faculty') window.location.href = '/faculty_dashboard.html';
-    else window.location.href = '/student_dashboard.html';
+    redirectByRole(role);
 
     return { success: true };
   } catch (error) {
@@ -72,9 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userStr) {
       const user = JSON.parse(userStr);
       const role = user.role.toLowerCase();
-      if (role === 'admin') window.location.href = '/admin_dashboard.html';
-      else if (role === 'faculty') window.location.href = '/faculty_dashboard.html';
-      else window.location.href = '/student_dashboard.html';
+      redirectByRole(role);
       return;
     }
   }
@@ -87,9 +89,3 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') onLoginSubmit(); });
   });
 });
-
-
-// const loginBtn = document.getElementById('login-btn');
-// loginBtn.addEventListener('click', () => {
-//   window.location.href = 'faculty_dashboard.html';
-// });

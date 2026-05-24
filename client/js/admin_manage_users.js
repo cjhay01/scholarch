@@ -1,54 +1,21 @@
 // admin_manage_users.js – dynamic user management (admin only)
-
-const API_BASE = window.location.origin + '/api';
-
-// ---------- Helpers ----------
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function getUser() {
-  const token = getToken();
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = './login_page.html';
-}
-
 // ---------- Auth & role check ----------
 function renderAuthUI() {
   const user = getUser();
+
+  // Must be logged in AND be an admin
+  if (!user || user.role !== 'admin') {
+    window.location.href = './login_page.html';
+    return;
+  }
+
   const authSection = document.getElementById('authSection');
   const topbarAuth = document.getElementById('topbarAuth');
   const mobileAuth = document.getElementById('mobileAuth');
   const mobileAvatar = document.getElementById('mobileAvatar');
 
-  // Must be logged in AND be an admin
-  // if (!user || user.role !== 'admin') {
-  //   window.location.href = './login_page.html';
-  //   return;
-  // }
-
   const name = user.name || 'Admin';
   const role = user.role || 'Administrator';
-  const initial = name.charAt(0).toUpperCase();
 
   if (authSection) {
     authSection.innerHTML = `
@@ -254,7 +221,7 @@ async function saveEdit() {
   const password = document.getElementById('editPassword').value.trim();
 
   if (!name || !email || !contact) {
-    alert('Please fill all required fields.');
+    showToast('Please fill all required fields.', 'error');
     return;
   }
 
@@ -277,7 +244,7 @@ async function saveEdit() {
     renderUserLists();
   } catch (err) {
     console.error(err);
-    alert('Error updating user. See console.');
+    showToast('Error updating user. See console.', 'error');
   }
 }
 
@@ -304,7 +271,7 @@ async function confirmDelete() {
     renderUserLists();
   } catch (err) {
     console.error(err);
-    alert('Error deleting user.');
+    showToast('Error deleting user. See console.', 'error');
   }
 }
 
@@ -328,7 +295,7 @@ async function saveNewFaculty() {
   const password = document.getElementById('facultyPassword').value.trim();
 
   if (!userId || !firstName || !lastName || !email || !contact) {
-    alert('Please fill all required fields.');
+    showToast('Please fill all required fields.', 'error');
     return;
   }
 
@@ -357,12 +324,13 @@ async function saveNewFaculty() {
     renderUserLists();
   } catch (err) {
     console.error(err);
-    alert('Error creating faculty. See console.');
+    showToast('Error creating faculty. See console.', 'error');
   }
 }
 
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  initHamburger();
   renderAuthUI();
   const user = getUser();
   if (!user || user.role !== 'admin') return;
@@ -406,25 +374,3 @@ document.addEventListener('DOMContentLoaded', async () => {
   await fetchUsers();
   renderUserLists();
 });
-
-// Hamburger menu (unchanged)
-const hamburger = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
-if (hamburger && mobileNav) {
-  hamburger.addEventListener('click', () => {
-    const isOpen = mobileNav.classList.contains('is-open');
-    if (!isOpen) {
-      mobileNav.style.display = 'flex';
-      setTimeout(() => mobileNav.classList.add('is-open'), 10);
-      hamburger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      mobileNav.classList.remove('is-open');
-      hamburger.classList.remove('open');
-      document.body.style.overflow = '';
-      mobileNav.addEventListener('transitionend', () => {
-        if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-      }, { once: true });
-    }
-  });
-}

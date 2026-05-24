@@ -1,34 +1,4 @@
-// admin_dashboard.js – dynamic admin dashboard, API‑driven (logout confirmation added)
-
-// ------------------- Helpers -------------------
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function getUser() {
-  const token = getToken();
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = './login_page.html';
-}
+// admin_dashboard.js 
 
 // ---------- Logout confirmation modal ----------
 function showLogoutModal() {
@@ -103,7 +73,9 @@ function renderAuthUI() {
 // ------------------- Data fetching -------------------
 async function fetchUserCount() {
   try {
-    const res = await fetch('/api/userCount');
+    const res = await fetch('/api/userCount', {
+    headers: { 'Authorization': `Bearer ${getToken()}` }
+  });
     if (!res.ok) throw new Error('Failed to fetch user count');
     return await res.json();   // { current, previous }
   } catch (err) {
@@ -114,7 +86,9 @@ async function fetchUserCount() {
 
 async function fetchStudyCount() {
   try {
-    const res = await fetch('/api/studyCount');
+    const res = await fetch('/api/studyCount', {
+     headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
     if (!res.ok) throw new Error('Failed to fetch study count');
     return await res.json();   // { current, previous }
   } catch (err) {
@@ -125,7 +99,9 @@ async function fetchStudyCount() {
 
 async function fetchUserGrowth() {
   try {
-    const res = await fetch('/api/userGrowth');
+    const res = await fetch('/api/userGrowth', {
+    headers: { 'Authorization': `Bearer ${getToken()}` }
+  });
     if (!res.ok) throw new Error('Failed to fetch user growth');
     return await res.json();   // [{ month, newUsers }]
   } catch (err) {
@@ -302,29 +278,8 @@ async function initDashboard() {
   createCharts(userGrowth);
 }
 
-// Hamburger menu (unchanged)
-const hamburger = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
-if (hamburger && mobileNav) {
-  hamburger.addEventListener('click', () => {
-    const isOpen = mobileNav.classList.contains('is-open');
-    if (!isOpen) {
-      mobileNav.style.display = 'flex';
-      setTimeout(() => mobileNav.classList.add('is-open'), 10);
-      hamburger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      mobileNav.classList.remove('is-open');
-      hamburger.classList.remove('open');
-      document.body.style.overflow = '';
-      mobileNav.addEventListener('transitionend', () => {
-        if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-      }, { once: true });
-    }
-  });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
+  initHamburger();
   initDashboard();
 
   // Logout modal handlers

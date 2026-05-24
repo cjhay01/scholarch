@@ -10,13 +10,19 @@ function checkLoginStatus() {
     const userMenu = document.getElementById('userMenu');
     userMenu.style.display = 'flex';
     userMenu.style.alignItems = 'center';
-    document.getElementById('userName').textContent = `Welcome, ${user.name.split(' ')[0]}`;
+      document.getElementById('userName').textContent =
+     `Welcome, ${escapeHtml(user.name.split(' ')[0])}`;
+
+
     document.getElementById('logoutBtn').onclick = (e) => {
-        e.preventDefault();
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        window.location.href = 'index.html';
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        window.location.href = './index.html';
     };
+
+
     } else {
     document.getElementById('loginBtn').style.display = 'inline-block';
     document.getElementById('userMenu').style.display = 'none';

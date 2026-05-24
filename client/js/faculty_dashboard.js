@@ -1,64 +1,17 @@
-// faculty_dashboard.js – dynamic proposals, API integration, login state
-
-const API_BASE = window.location.origin; // same origin
+// faculty_dashboard.js 
 let currentUser = null;
 let allProposals = [];
 let activeFilter = 'all';
 let searchQuery = '';
 let currentModalProposal = null;
-
-function getToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
-}
-
-function getUserFromStorage() {
-  const token = getToken();
-  if (!token) return null;
-  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-  return userStr ? JSON.parse(userStr) : null;
-}
-
-function clearAuthAndRedirect() {
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  window.location.href = './index.html';
-}
-
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/[&<>]/g, function(m) {
-    if (m === '&') return '&amp;';
-    if (m === '<') return '&lt;';
-    if (m === '>') return '&gt;';
-    return m;
-  });
-}
-
-function showToast(msg, type = 'info') {
-  const toast = document.createElement('div');
-  toast.innerText = msg;
-  toast.style.position = 'fixed';
-  toast.style.bottom = '20px';
-  toast.style.right = '20px';
-  toast.style.backgroundColor = type === 'success' ? '#16a34a' : (type === 'error' ? '#dc2626' : '#436DE9');
-  toast.style.color = 'white';
-  toast.style.padding = '0.75rem 1.25rem';
-  toast.style.borderRadius = 'var(--radius-full)';
-  toast.style.fontSize = '0.875rem';
-  toast.style.zIndex = '9999';
-  toast.style.boxShadow = 'var(--shadow-md)';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
+let proposalModal, historyModal, closeModalBtn, addFeedbackOnlyBtn, rejectBtn, revisionBtn, approveBtn, viewHistoryBtn, closeHistoryModalBtn;
 
 // ---------- Load current user from API (refresh localStorage) ----------
 async function loadCurrentUser() {
   const token = getToken();
   if (!token) return null;
   try {
-    const response = await fetch(`${API_BASE}/api/users/me`, {
+    const response = await fetch(`${API_BASE}/users/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.status === 401) {
@@ -73,7 +26,7 @@ async function loadCurrentUser() {
   } catch (err) {
     console.error('Failed to load user from API:', err);
     // Fallback to stored user
-    const stored = getUserFromStorage();
+    const stored = getUser();
     if (stored) {
       currentUser = stored;
       showToast('Using cached profile', 'warning');
@@ -250,7 +203,7 @@ async function loadProposals() {
     return;
   }
   try {
-    const response = await fetch(`${API_BASE}/api/proposals`, {
+    const response = await fetch(`${API_BASE}/proposals`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (response.status === 401) {
@@ -269,16 +222,7 @@ async function loadProposals() {
   }
 }
 
-// ---------- Modal logic ----------
-const proposalModal = document.getElementById('proposalModal');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const addFeedbackOnlyBtn = document.getElementById('addFeedbackOnlyBtn');
-const rejectBtn = document.getElementById('rejectBtn');
-const revisionBtn = document.getElementById('revisionBtn');
-const approveBtn = document.getElementById('approveBtn');
-const viewHistoryBtn = document.getElementById('viewHistoryBtn');
-const historyModal = document.getElementById('historyModal');
-const closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
+
 
 function openProposalModal(proposal) {
   currentModalProposal = proposal;
@@ -301,7 +245,7 @@ function openProposalModal(proposal) {
     const downloadBtn = document.getElementById('modalDownloadBtn');
     downloadBtn.style.display = 'flex';
     downloadBtn.onclick = () => {
-      window.open(`${API_BASE}/api/uploads/${proposal.file}`, '_blank');
+      window.open(`${API_BASE}/uploads/${proposal.file}`, '_blank');
     };
   } else {
     document.getElementById('modalFileLabel').innerText = 'No document attached';
@@ -344,7 +288,7 @@ async function addFeedbackOnly(proposalId) {
   }
   const token = getToken();
   try {
-    const response = await fetch(`${API_BASE}/api/proposals/${proposalId}/feedback`, {
+    const response = await fetch(`${API_BASE}/proposals/${proposalId}/feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -370,7 +314,7 @@ async function changeProposalStatus(proposalId, newStatus) {
   const token = getToken();
   try {
     if (comment) {
-      const feedbackRes = await fetch(`${API_BASE}/api/proposals/${proposalId}/feedback`, {
+      const feedbackRes = await fetch(`${API_BASE}/proposals/${proposalId}/feedback`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -384,7 +328,7 @@ async function changeProposalStatus(proposalId, newStatus) {
       }
       if (!feedbackRes.ok) throw new Error('Failed to add feedback');
     }
-    const statusRes = await fetch(`${API_BASE}/api/proposals/${proposalId}/status`, {
+    const statusRes = await fetch(`${API_BASE}/proposals/${proposalId}/status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -521,43 +465,31 @@ function initFilters() {
     });
   }
 }
-
-// ---------- Hamburger menu ----------
-const hamburger = document.getElementById('hamburgerBtn');
-const mobileNav = document.getElementById('mobileNav');
-if (hamburger && mobileNav) {
-  hamburger.addEventListener('click', () => {
-    const isOpen = mobileNav.classList.contains('is-open');
-    if (!isOpen) {
-      mobileNav.style.display = 'flex';
-      setTimeout(() => mobileNav.classList.add('is-open'), 10);
-      hamburger.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    } else {
-      mobileNav.classList.remove('is-open');
-      hamburger.classList.remove('open');
-      document.body.style.overflow = '';
-      mobileNav.addEventListener('transitionend', () => {
-        if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
-      }, { once: true });
-    }
-  });
-}
-
 // ---------- Modal close handlers ----------
-closeModalBtn.addEventListener('click', closeModal);
-proposalModal.addEventListener('click', (e) => { if (e.target === proposalModal) closeModal(); });
-closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
-historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeModal();
-    closeHistoryModal();
-  }
-});
 
 // ---------- Initialize ----------
 document.addEventListener('DOMContentLoaded', async () => {
+  // ---------- Modal logic ----------
+  proposalModal = document.getElementById('proposalModal');
+  closeModalBtn = document.getElementById('closeModalBtn');
+  addFeedbackOnlyBtn = document.getElementById('addFeedbackOnlyBtn');
+  rejectBtn = document.getElementById('rejectBtn');
+  revisionBtn = document.getElementById('revisionBtn');
+  approveBtn = document.getElementById('approveBtn');
+  viewHistoryBtn = document.getElementById('viewHistoryBtn');
+  historyModal = document.getElementById('historyModal');
+  closeHistoryModalBtn = document.getElementById('closeHistoryModalBtn');
+  closeModalBtn.addEventListener('click', closeModal);
+  proposalModal.addEventListener('click', (e) => { if (e.target === proposalModal) closeModal(); });
+  closeHistoryModalBtn.addEventListener('click', closeHistoryModal);
+  historyModal.addEventListener('click', (e) => { if (e.target === historyModal) closeHistoryModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      closeHistoryModal();
+    }
+  });
+  initHamburger();
   await renderAuthUI();
   if (!currentUser) {
     document.getElementById('proposalsGrid').innerHTML = '<div class="empty-state"><p>Please log in to view proposals.</p></div>';
