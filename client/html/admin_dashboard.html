@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Scholarch admin dashboard — overview of users and archive studies.">
+  <title>Scholarch | Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="../images/icon.ico" type="image/png">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <link rel="stylesheet" href="../styles/admin_dashboard.css">
+</head>
+<body>
+
+<header class="mobile-topbar">
+  <a href="#" class="mobile-logo"><span class="mobile-logo-text">Scholar<span class="ch">ch</span></span></a>
+  <div class="mobile-topbar-right">
+    <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<nav class="mobile-nav" id="mobileNav">
+  <ul class="mobile-nav-links">
+    <li><a href="#" class="mobile-nav-active">Dashboard</a></li>
+    <li><a href="#">Manage Users</a></li>
+    <li><a href="#">Manage Archive</a></li>
+  </ul>
+  <div class="mobile-nav-auth" id="mobileAuth"></div>
+</nav>
+
+<div class="mobile-content">
+  <div class="mobile-greeting-card">
+    <div><h2>Admin Dashboard</h2><p>System overview</p></div>
+    <div class="mobile-avatar" id="mobileAvatar">AD</div>
+  </div>
+  <div class="mobile-stats-grid">
+    <div class="mobile-stat-card">
+      <div class="mobile-stat-left">
+        <span class="mobile-stat-label">Total Users</span>
+        <span class="mobile-stat-value" id="mobileTotalUsers">48</span>
+      </div>
+      <div class="mobile-stat-right">+12%</div>
+    </div>
+    <div class="mobile-stat-card">
+      <div class="mobile-stat-left">
+        <span class="mobile-stat-label">Archived Studies</span>
+        <span class="mobile-stat-value" id="mobileArchivedStudies">124</span>
+      </div>
+      <div class="mobile-stat-right">+8%</div>
+    </div>
+  </div>
+  <div class="mobile-chart-card">
+    <div class="mobile-chart-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      User Growth (Last 6 months)
+    </div>
+    <div class="mobile-chart-canvas">
+      <canvas id="mobileUserChart"></canvas>
+    </div>
+  </div>
+  <div class="mobile-chart-card">
+    <div class="mobile-chart-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      Submissions by Type
+    </div>
+    <div class="mobile-chart-canvas">
+      <canvas id="mobileSubmissionsChart"></canvas>
+    </div>
+  </div>
+  <footer class="mobile-footer">
+    <div><span class="logo-text">Scholar<span class="ch">ch</span></span> PLV ITD · 2026</div>
+    <div class="mobile-footer-links"><a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Support</a></div>
+  </footer>
+</div>
+
+<div class="grid-container">
+  <aside class="sidebar">
+    <a href="#" class="sidebar-logo">
+      <svg viewBox="0 0 22 22" fill="none">
+        <circle cx="9.5" cy="9.5" r="6.5" stroke="#436DE9" stroke-width="1.8" fill="none"/>
+        <path d="M14.5 14.5L19 19" stroke="#FFA51F" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="logo-text">Scholar<span class="ch">ch</span></span>
+    </a>
+    <nav class="sidebar-nav">
+      <span class="nav-section-label">Admin</span>
+      <a href="#" class="nav-item is-active">
+        <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2"/></svg>
+        Manage Users
+      </a>
+      <a href="#" class="nav-item">
+        <svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor"/></svg>
+        Manage Archive
+      </a>
+    </nav>
+    <div class="sidebar-footer" id="authSection"></div>
+  </aside>
+
+  <div class="right-column">
+    <header class="topbar">
+      <div class="topbar-left"><span class="topbar-title">Admin Dashboard</span><span class="topbar-sub">Pamantasan ng Lungsod ng Valenzuela · ITD</span></div>
+      <div class="topbar-right" id="topbarAuth"></div>
+    </header>
+
+    <main class="main-content">
+      <div class="welcome-banner">
+        <h1 class="welcome-heading">Welcome back, Admin 👋</h1>
+        <p class="welcome-sub">Comprehensive overview of Scholarch platform analytics</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+            <span class="stat-trend"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> +12%</span>
+          </div>
+          <div class="stat-count" id="desktopTotalUsers">48</div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-description">Faculty, students, and staff accounts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">
+            <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+            <span class="stat-trend"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg> +8%</span>
+          </div>
+          <div class="stat-count" id="desktopArchivedStudies">124</div>
+          <div class="stat-label">Archived Studies</div>
+          <div class="stat-description">Research proposals and theses</div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> User Growth (Last 6 months)</div>
+          <div class="chart-body"><canvas id="desktopUserChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Study Submissions by Type</div>
+          <div class="chart-body"><canvas id="desktopSubmissionsChart"></canvas></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-brand"><span class="logo-text">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div>
+  <nav class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav>
+</footer>
+
+<script src="/js/admin_dashboard.js"></script>
+</body>
+</html>

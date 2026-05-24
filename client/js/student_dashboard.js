@@ -1,393 +1,852 @@
-const hamburger = document.getElementById('hamburger');
-const mobileNav = document.getElementById('mobile-nav');
-hamburger.addEventListener('click', () => {
-    const isOpen = hamburger.getAttribute('aria-expanded') === 'true';
-    hamburger.setAttribute('aria-expanded', String(!isOpen));
-    mobileNav.setAttribute('aria-hidden', String(isOpen));
-    if (!isOpen) { mobileNav.style.display = 'flex'; mobileNav.classList.add('is-open'); document.body.style.overflow = 'hidden'; } 
-    else { mobileNav.classList.remove('is-open'); document.body.style.overflow = ''; mobileNav.addEventListener('transitionend', () => { if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none'; }, { once: true }); }
-});
-mobileNav.querySelectorAll('a').forEach(link => { link.addEventListener('click', () => { hamburger.setAttribute('aria-expanded', 'false'); mobileNav.setAttribute('aria-hidden', 'true'); mobileNav.classList.remove('is-open'); document.body.style.overflow = ''; mobileNav.addEventListener('transitionend', () => { if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none'; }, { once: true }); }); });
-
-// ========== FILTERING (desktop & mobile - unchanged but included) ==========
-const statCards = document.querySelectorAll('.stat-card');
-const proposals = document.querySelectorAll('.proposal-card');
-const countBadge = document.getElementById('proposal-count');
-const searchInput = document.getElementById('search-input');
-let activeFilter = 'all';
-let searchQuery = '';
-function applyFilters() {
-    let visible = 0;
-    proposals.forEach(card => { const status = card.dataset.status; const title = card.querySelector('.card-title').textContent.toLowerCase(); const show = (activeFilter === 'all' || status === activeFilter) && (!searchQuery || title.includes(searchQuery)); card.style.display = show ? '' : 'none'; if (show) visible++; });
-    countBadge.textContent = `${visible} total`;
-    const grid = document.getElementById('proposals-grid'); const existing = grid.querySelector('.empty-state');
-    if (visible === 0 && !existing) { const empty = document.createElement('div'); empty.className = 'empty-state'; empty.innerHTML = `<svg viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5"/></svg><p class="empty-heading">No proposals found</p><p>Try adjusting your filter or search.</p>`; grid.appendChild(empty); } 
-    else if (visible > 0 && existing) { existing.remove(); }
-}
-statCards.forEach(card => { card.addEventListener('click', () => { statCards.forEach(c => { c.classList.remove('is-active'); c.setAttribute('aria-pressed', 'false'); }); card.classList.add('is-active'); card.setAttribute('aria-pressed', 'true'); activeFilter = card.dataset.filter; applyFilters(); }); });
-searchInput.addEventListener('input', () => { searchQuery = searchInput.value.trim().toLowerCase(); applyFilters(); });
-
-const mobilePills = document.querySelectorAll('.mobile-stat-pill');
-const mobileCards = document.querySelectorAll('#mobile-proposals-list .mobile-card');
-const mobileCount = document.getElementById('mobile-proposal-count');
-const mobileSearch = document.getElementById('mobile-search');
-let mobileFilter = 'all';
-let mobileQuery = '';
-function applyMobileFilters() {
-    let visible = 0;
-    mobileCards.forEach(card => { const status = card.dataset.status; const title = card.querySelector('.mobile-card-title').textContent.toLowerCase(); const show = (mobileFilter === 'all' || status === mobileFilter) && (!mobileQuery || title.includes(mobileQuery)); card.style.display = show ? '' : 'none'; if (show) visible++; });
-    mobileCount.textContent = `${visible} total`;
-    const list = document.getElementById('mobile-proposals-list'); const existing = list.querySelector('.mobile-empty');
-    if (visible === 0 && !existing) { const empty = document.createElement('div'); empty.className = 'mobile-empty empty-state'; empty.innerHTML = `<svg viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5"/></svg><p class="empty-heading">No proposals found</p><p>Try adjusting your filter or search.</p>`; list.appendChild(empty); }
-    else if (visible > 0 && existing) { existing.remove(); }
-}
-mobilePills.forEach(pill => { pill.addEventListener('click', () => { mobilePills.forEach(p => p.classList.remove('is-active')); pill.classList.add('is-active'); mobileFilter = pill.dataset.filter; applyMobileFilters(); }); });
-mobileSearch.addEventListener('input', () => { mobileQuery = mobileSearch.value.trim().toLowerCase(); applyMobileFilters(); });
-
-// ========== MODAL STATE (updated: 2 steps, members only, static professor) ==========
+// ---------- Global variables ----------
 let currentStep = 1;
 const TOTAL_STEPS = 2;
 const MAX_MEMBERS = 6;
-let members = [''];
+let members = [];          // { userId, name, isCurrentUser }
 let uploadedFile = null;
-const overlay = document.getElementById('modal-overlay');
-const closeBtn = document.getElementById('close-modal');
-const btnBack = document.getElementById('btn-back');
-const btnNext = document.getElementById('btn-next');
-const btnDone = document.getElementById('btn-done');
-const stepCounter = document.getElementById('step-counter');
-const modalBody = document.getElementById('modal-body');
-const modalFooter = document.getElementById('modal-footer');
-const successState = document.getElementById('success-state');
+let currentUser = null;
+let allProposals = [];
+let activeFilter = 'all';
+let searchQuery = '';
+let mobileFilter = 'all';
+let mobileQuery = '';
+let isResubmit = false;
+let currentResubmitProposalId = null;
+let classmates = [];
 
-function openModal() { overlay.removeAttribute('aria-hidden'); overlay.classList.add('is-open'); document.body.style.overflow = 'hidden'; resetForm(); setTimeout(() => { const f = document.getElementById('proposal-title'); if (f) f.focus(); }, 320); }
-function closeModal() { overlay.setAttribute('aria-hidden', 'true'); overlay.classList.remove('is-open'); document.body.style.overflow = ''; }
-document.querySelectorAll('.open-modal-btn').forEach(btn => btn.addEventListener('click', openModal));
-closeBtn.addEventListener('click', closeModal);
-btnDone.addEventListener('click', closeModal);
-overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('is-open')) closeModal(); });
+// ---------- API base ----------
+const API_BASE = window.location.origin + '/api';
 
-function goToStep(step) {
-    document.getElementById(`step-panel-${currentStep}`).classList.remove('is-active');
-    currentStep = step;
-    document.getElementById(`step-panel-${step}`).classList.add('is-active');
-    for (let i = 1; i <= TOTAL_STEPS; i++) { 
-    const dot = document.getElementById(`step-dot-${i}`); 
-    const item = document.getElementById(`step-item-${i}`); 
-    dot.classList.remove('is-active', 'is-done'); 
-    item.classList.remove('is-active', 'is-done'); 
-    if (i < step) { dot.classList.add('is-done'); item.classList.add('is-done'); dot.innerHTML = `<svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`; } 
-    else if (i === step) { dot.classList.add('is-active'); item.classList.add('is-active'); dot.textContent = i; } 
-    else { dot.textContent = i; } 
+// ---------- Helper functions ----------
+function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+
+function getUserFromStorage() {
+  const token = getToken();
+  if (!token) return null;
+  const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
+  return userStr ? JSON.parse(userStr) : null;
+}
+
+async function fetchWithAuth(url, options = {}) {
+  const token = getToken();
+  if (!token) throw new Error('No authentication token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+    'Authorization': `Bearer ${token}`
+  };
+  const response = await fetch(`${API_BASE}${url}`, { ...options, headers });
+  if (response.status === 401) {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = './index.html';
+    throw new Error('Session expired');
+  }
+  return response;
+}
+
+function showToast(msg, type = 'info') {
+  const toast = document.createElement('div');
+  toast.innerText = msg;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.backgroundColor = type === 'success' ? '#16a34a' : (type === 'error' ? '#dc2626' : '#436DE9');
+  toast.style.color = 'white';
+  toast.style.padding = '0.75rem 1.25rem';
+  toast.style.borderRadius = 'var(--radius-full)';
+  toast.style.fontSize = '0.875rem';
+  toast.style.zIndex = '9999';
+  toast.style.boxShadow = 'var(--shadow-md)';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// ---------- Update all UI elements from currentUser ----------
+function updateUserUI() {
+  if (!currentUser) return;
+  const name = currentUser.name || 'Student';
+  const role = currentUser.role || 'Student';
+  const section = currentUser.year_and_section || '';
+  const initial = name.charAt(0).toUpperCase();
+
+  // Desktop sidebar
+  const sidebarName = document.querySelector('.sidebar-user-name');
+  if (sidebarName) sidebarName.textContent = name;
+  const sidebarRole = document.querySelector('.sidebar-user-role');
+  if (sidebarRole) sidebarRole.textContent = role + (section ? ` · ${section}` : '');
+  const avatarCircle = document.querySelector('.sidebar-footer .avatar-circle');
+  if (avatarCircle) avatarCircle.textContent = initial;
+
+  // Desktop topbar avatar
+  const topbarAvatar = document.querySelector('.topbar-right .avatar-btn');
+  if (topbarAvatar) topbarAvatar.textContent = initial;
+
+  // Mobile topbar avatar (the one inside .mobile-avatar – but that's for greeting card)
+  const mobileAvatar = document.querySelector('.mobile-avatar');
+  if (mobileAvatar) mobileAvatar.textContent = initial;
+
+  // Mobile nav logout button area is handled separately, no user info there
+}
+
+// ---------- Load current user and proposals ----------
+async function loadCurrentUser() {
+  try {
+    const response = await fetchWithAuth('/users/me');
+    const user = await response.json();
+    currentUser = user;
+    localStorage.setItem('user', JSON.stringify(user));
+    updateUserUI();   // Update sidebar, avatars, etc.
+    return user;
+  } catch (err) {
+    console.error('Failed to load user:', err);
+    const stored = getUserFromStorage();
+    if (stored) {
+      currentUser = stored;
+      updateUserUI(); // still update from cached
+      showToast('Using cached profile', 'warning');
+      return stored;
     }
-    document.getElementById('connector-1').classList.toggle('is-filled', step > 1);
-    btnBack.disabled = step === 1;
-    stepCounter.textContent = `Step ${step} of ${TOTAL_STEPS}`;
-    if (step === TOTAL_STEPS) { 
-    btnNext.innerHTML = `<svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Submit`;
-    btnNext.className = 'btn-submit'; btnNext.id = 'btn-next';
-    populateReview();
-    } else { 
-    btnNext.innerHTML = `Next <svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><polyline points="5,2 10,7 5,12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    btnNext.className = 'btn-next'; btnNext.id = 'btn-next';
+    throw err;
+  }
+}
+
+async function loadProposals() {
+  if (!currentUser) return;
+  allProposals = currentUser.proposals || [];
+  renderDesktop();
+  renderMobile();
+  updateStats();
+  updateWelcomeMessage();
+}
+
+// ---------- Fetch classmates from same section ----------
+async function loadClassmates() {
+  if (!currentUser || !currentUser.year_and_section) return;
+  try {
+    const response = await fetchWithAuth(`/users?section=${encodeURIComponent(currentUser.year_and_section)}&role=Student`);
+    const users = await response.json();
+    classmates = users.map(u => ({
+      id: u.user_id,
+      name: u.name
+    }));
+    const currentId = currentUser.user_id;
+    if (!classmates.find(c => c.id === currentId)) {
+      classmates.push({ id: currentId, name: currentUser.name });
     }
-    modalBody.scrollTop = 0;
+  } catch (err) {
+    console.error('Failed to load classmates:', err);
+    classmates = [{ id: currentUser.user_id, name: currentUser.name }];
+  }
 }
-btnBack.addEventListener('click', () => { if (currentStep > 1) goToStep(currentStep - 1); });
-btnNext.addEventListener('click', () => { if (validateCurrentStep()) { if (currentStep < TOTAL_STEPS) goToStep(currentStep + 1); else handleSubmit(); } });
 
-function validateCurrentStep() {
-    if (currentStep === 1) return validateStep1();
-    if (currentStep === 2) return validateStep2();
-    return true;
+// ---------- Render desktop proposals (unchanged) ----------
+function renderDesktop() {
+  const grid = document.getElementById('proposals-grid');
+  if (!grid) return;
+  let filtered = allProposals.filter(p => {
+    const statusMatch = activeFilter === 'all' || p.status === activeFilter;
+    const searchMatch = !searchQuery || p.title.toLowerCase().includes(searchQuery) ||
+      (p.abstract && p.abstract.toLowerCase().includes(searchQuery));
+    return statusMatch && searchMatch;
+  });
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><svg viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="9" x2="18" y2="9" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="13" x2="18" y2="13" stroke="currentColor" stroke-width="1.3"/><line x1="8" y1="17" x2="14" y2="17" stroke="currentColor" stroke-width="1.3"/></svg><p class="empty-heading">No proposals found</p><p>Try adjusting your filter or search.</p></div>`;
+    document.getElementById('proposal-count').innerText = '0 total';
+    return;
+  }
+  grid.innerHTML = filtered.map(p => {
+    const statusClass = p.status.toLowerCase().replace(' ', '-');
+    const membersStr = p.members ? p.members.map(m => m.name).join(', ') : 'No members';
+    return `
+      <article class="proposal-card" data-status="${p.status}" data-id="${p._id}">
+        <div class="card-stripe ${statusClass}"></div>
+        <div class="card-body">
+          <div class="card-top">
+            <h3 class="card-title">${escapeHtml(p.title)}</h3>
+            <span class="status-badge ${statusClass}">${p.status}</span>
+          </div>
+          <div class="card-meta">
+            <span class="meta-row"><svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg>${escapeHtml(membersStr)}</span>
+            <span class="meta-row"><svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 1v3M8 1v3" stroke="currentColor" stroke-width="1.2"/></svg>Submitted ${new Date(p.submissionDate).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div class="card-footer">
+          <span class="card-date">${new Date(p.submissionDate).toLocaleDateString()}</span>
+          <button class="card-action view-proposal" data-id="${p._id}">View →</button>
+        </div>
+      </article>
+    `;
+  }).join('');
+  document.getElementById('proposal-count').innerText = `${filtered.length} total`;
+  attachViewHandlers();
 }
-function validateStep1() {
-    let valid = true;
-    const titleInput = document.getElementById('proposal-title');
-    const titleError = document.getElementById('title-error');
-    if (!titleInput.value.trim()) { showError(titleInput, titleError); valid = false; } 
-    else { clearError(titleInput, titleError); }
-    const memberInputs = document.querySelectorAll('#members-list .member-input');
-    const membersError = document.getElementById('members-error');
-    const membersNamesErr = document.getElementById('members-names-error');
-    membersError.classList.remove('is-visible'); membersNamesErr.classList.remove('is-visible');
-    if (memberInputs.length === 0) { membersError.classList.add('is-visible'); valid = false; }
-    else {
-    let anyEmpty = false;
-    memberInputs.forEach(inp => { if (!inp.value.trim()) { inp.classList.add('is-error'); anyEmpty = true; } else { inp.classList.remove('is-error'); } });
-    if (anyEmpty) { membersNamesErr.classList.add('is-visible'); valid = false; }
-    }
-    if (!valid) { const firstErr = modalBody.querySelector('.is-error'); if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-    return valid;
-}
-function validateStep2() {
-    const err = document.getElementById('upload-error');
-    if (!uploadedFile) { err.classList.add('is-visible'); return false; }
-    err.classList.remove('is-visible');
-    return true;
-}
-function clearError(inputEl, errorEl) { inputEl.classList.remove('is-error'); errorEl.classList.remove('is-visible'); }
-function showError(inputEl, errorEl) { inputEl.classList.add('is-error'); errorEl.classList.add('is-visible'); }
 
-document.getElementById('proposal-title').addEventListener('input', function() { this.classList.remove('is-error'); document.getElementById('title-error').classList.remove('is-visible'); });
+// ---------- Render mobile proposals (unchanged) ----------
+function renderMobile() {
+  const list = document.getElementById('mobile-proposals-list');
+  if (!list) return;
+  let filtered = allProposals.filter(p => {
+    const statusMatch = mobileFilter === 'all' || p.status === mobileFilter;
+    const searchMatch = !mobileQuery || p.title.toLowerCase().includes(mobileQuery) ||
+      (p.abstract && p.abstract.toLowerCase().includes(mobileQuery));
+    return statusMatch && searchMatch;
+  });
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state"><svg viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="18" height="24" rx="2" stroke="currentColor" stroke-width="1.5"/></svg><p class="empty-heading">No proposals found</p><p>Try adjusting your filter or search.</p></div>`;
+    document.getElementById('mobile-proposal-count').innerText = '0 total';
+    return;
+  }
+  list.innerHTML = filtered.map(p => {
+    const statusClass = p.status.toLowerCase().replace(' ', '-');
+    const membersStr = p.members ? p.members.map(m => m.name).join(', ') : 'No members';
+    return `
+      <article class="mobile-card" data-status="${p.status}" data-id="${p._id}">
+        <div class="card-stripe ${statusClass}"></div>
+        <div class="mobile-card-inner">
+          <div class="mobile-card-top">
+            <h3 class="mobile-card-title">${escapeHtml(p.title)}</h3>
+            <span class="status-badge ${statusClass}">${p.status}</span>
+          </div>
+          <div class="mobile-card-meta">
+            <span class="meta-row"><svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg>${escapeHtml(membersStr)}</span>
+            <span class="meta-row"><svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 1v3M8 1v3" stroke="currentColor" stroke-width="1.2"/></svg>Submitted ${new Date(p.submissionDate).toLocaleDateString()}</span>
+          </div>
+          <div class="mobile-card-footer">
+            <span class="mobile-card-date">${new Date(p.submissionDate).toLocaleDateString()}</span>
+            <button class="mobile-card-action view-proposal" data-id="${p._id}">View →</button>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+  document.getElementById('mobile-proposal-count').innerText = `${filtered.length} total`;
+  attachViewHandlers();
+}
 
-// Members management
+function attachViewHandlers() {
+  document.querySelectorAll('.view-proposal').forEach(btn => {
+    btn.removeEventListener('click', viewHandler);
+    btn.addEventListener('click', viewHandler);
+  });
+}
+
+function viewHandler(e) {
+  const id = e.currentTarget.getAttribute('data-id');
+  const proposal = allProposals.find(p => p._id === id);
+  if (proposal) openProposalViewModal(proposal);
+}
+
+function updateStats() {
+  const stats = {
+    all: allProposals.length,
+    Submitted: allProposals.filter(p => p.status === 'Submitted').length,
+    'Needs Revision': allProposals.filter(p => p.status === 'Needs Revision').length,
+    Approved: allProposals.filter(p => p.status === 'Approved').length,
+    Rejected: allProposals.filter(p => p.status === 'Rejected').length
+  };
+  document.querySelectorAll('.stat-card').forEach(card => {
+    const filter = card.dataset.filter;
+    const countSpan = card.querySelector('.stat-count');
+    if (countSpan && stats[filter] !== undefined) countSpan.textContent = stats[filter];
+  });
+  document.querySelectorAll('.mobile-stat-pill').forEach(pill => {
+    const filter = pill.dataset.filter;
+    const countSpan = pill.querySelector('.mobile-pill-count');
+    if (countSpan && stats[filter] !== undefined) countSpan.textContent = stats[filter];
+  });
+  document.getElementById('mobile-proposal-count').innerText = `${stats.all} total`;
+  document.getElementById('proposal-count').innerText = `${stats.all} total`;
+}
+
+function updateWelcomeMessage() {
+  if (!currentUser) return;
+  const reviewCount = allProposals.filter(p => p.status === 'Submitted').length;
+  const revisionCount = allProposals.filter(p => p.status === 'Needs Revision').length;
+  const firstName = currentUser.name.split(' ')[0];
+  document.getElementById('welcome-heading').innerHTML = `Welcome back, ${firstName} 👋`;
+  document.getElementById('welcome-sub').innerHTML = `You have <strong>${reviewCount}</strong> proposal(s) awaiting adviser feedback, <strong>${revisionCount}</strong> revision requested.`;
+  document.getElementById('mobile-greeting-name').innerText = firstName;
+  document.getElementById('mobile-greeting-sub').innerHTML = `<strong>${reviewCount}</strong> awaiting feedback, <strong>${revisionCount}</strong> revision requested.`;
+}
+
+// ---------- Member dropdown helpers (unchanged) ----------
+function getCurrentUserFullName() {
+  return currentUser ? currentUser.name : 'Student';
+}
+function getCurrentUserId() {
+  return currentUser ? currentUser.user_id : '';
+}
+
+function initMembers() {
+  const currentName = getCurrentUserFullName();
+  const currentId = getCurrentUserId();
+  members = [{ userId: currentId, name: currentName, isCurrentUser: true }];
+}
+
 function renderMembers() {
-    const list = document.getElementById('members-list'); list.innerHTML = '';
-    members.forEach((name, idx) => { 
-    const row = document.createElement('div'); row.className = 'member-row';
-    row.innerHTML = `<span class="member-index">${idx + 1}</span><input type="text" class="member-input" placeholder="Full name" value="${escapeHtml(name)}" autocomplete="off" maxlength="80"><button class="btn-remove-member" type="button" aria-label="Remove member" ${members.length === 1 ? 'disabled style="opacity:0.3;cursor:not-allowed;"' : ''}><svg viewBox="0 0 14 14" fill="none"><line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>`;
-    row.querySelector('.member-input').addEventListener('input', function() { members[idx] = this.value; this.classList.remove('is-error'); document.getElementById('members-names-error').classList.remove('is-visible'); document.getElementById('members-error').classList.remove('is-visible'); });
-    row.querySelector('.btn-remove-member').addEventListener('click', () => { if (members.length > 1) { members.splice(idx, 1); renderMembers(); } });
-    list.appendChild(row);
-    });
-    const addBtn = document.getElementById('add-member-btn'); const hint = document.getElementById('member-hint');
-    const atMax = members.length >= MAX_MEMBERS;
-    addBtn.disabled = atMax;
-    hint.textContent = atMax ? `Maximum of ${MAX_MEMBERS} members reached.` : `Up to ${MAX_MEMBERS} members.`;
-}
-document.getElementById('add-member-btn').addEventListener('click', () => { if (members.length < MAX_MEMBERS) { members.push(''); renderMembers(); const inputs = document.querySelectorAll('#members-list .member-input'); if (inputs.length) inputs[inputs.length - 1].focus(); } });
+  const container = document.getElementById('members-list');
+  if (!container) return;
+  container.innerHTML = '';
 
-// File upload
-const uploadZone = document.getElementById('upload-zone');
-const fileInput = document.getElementById('file-upload');
-const filePreview = document.getElementById('file-preview');
-const removeFile = document.getElementById('remove-file');
-function handleFile(file) {
-    ['upload-error','upload-type-error','upload-size-error'].forEach(id => document.getElementById(id).classList.remove('is-visible'));
-    if (!file) return;
-    if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) { document.getElementById('upload-type-error').classList.add('is-visible'); return; }
-    if (file.size > 20 * 1024 * 1024) { document.getElementById('upload-size-error').classList.add('is-visible'); return; }
-    uploadedFile = file;
-    document.getElementById('file-name').textContent = file.name;
-    document.getElementById('file-size').textContent = formatFileSize(file.size) + ' · PDF';
-    filePreview.classList.add('is-visible');
-    uploadZone.style.display = 'none';
-    populateReview();
+  const allStudents = classmates.map(s => ({ id: s.id, name: s.name }));
+
+  members.forEach((member, idx) => {
+    const row = document.createElement('div');
+    row.className = 'member-row';
+
+    const select = document.createElement('select');
+    select.className = 'member-select';
+    if (member.isCurrentUser) {
+      select.disabled = true;
+      select.style.opacity = '0.6';
+    }
+    allStudents.forEach(student => {
+      const option = document.createElement('option');
+      option.value = student.id;
+      option.textContent = student.name;
+      if (student.id === member.userId) option.selected = true;
+      select.appendChild(option);
+    });
+    select.addEventListener('change', function() {
+      const selectedId = this.value;
+      const selectedName = allStudents.find(s => s.id === selectedId)?.name || '';
+      members[idx] = { userId: selectedId, name: selectedName, isCurrentUser: false };
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'btn-remove-member';
+    removeBtn.type = 'button';
+    removeBtn.innerHTML = `<svg viewBox="0 0 14 14" fill="none"><line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+    if (member.isCurrentUser || members.length === 1) {
+      removeBtn.disabled = true;
+      removeBtn.style.opacity = '0.3';
+    } else {
+      removeBtn.addEventListener('click', () => {
+        members.splice(idx, 1);
+        renderMembers();
+      });
+    }
+
+    const indexSpan = document.createElement('span');
+    indexSpan.className = 'member-index';
+    indexSpan.textContent = idx + 1;
+
+    row.appendChild(indexSpan);
+    row.appendChild(select);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+  });
+
+  const addBtn = document.getElementById('add-member-btn');
+  const hint = document.getElementById('member-hint');
+  const atMax = members.length >= MAX_MEMBERS;
+  if (addBtn) addBtn.disabled = atMax;
+  if (hint) hint.textContent = atMax ? `Maximum of ${MAX_MEMBERS} members reached.` : `Up to ${MAX_MEMBERS} members.`;
 }
-fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-removeFile.addEventListener('click', () => { uploadedFile = null; fileInput.value = ''; filePreview.classList.remove('is-visible'); uploadZone.style.display = ''; document.getElementById('file-name').textContent = '—'; document.getElementById('file-size').textContent = '—'; });
-function formatFileSize(bytes) { if (bytes < 1024) return bytes + ' B'; if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'; return (bytes / (1024 * 1024)).toFixed(2) + ' MB'; }
+
+function addMember() {
+  if (members.length >= MAX_MEMBERS) return;
+  const selectedIds = members.map(m => m.userId);
+  const available = classmates.filter(s => !selectedIds.includes(s.id) && s.id !== getCurrentUserId());
+  if (available.length === 0) {
+    showToast('No more classmates available to add.', 'warning');
+    return;
+  }
+  const newMember = { userId: available[0].id, name: available[0].name, isCurrentUser: false };
+  members.push(newMember);
+  renderMembers();
+}
+
+// ---------- Form validation & review (unchanged) ----------
+function validateStep1() {
+  let valid = true;
+  const titleInput = document.getElementById('proposal-title');
+  const titleError = document.getElementById('title-error');
+  if (!titleInput.value.trim()) {
+    showError(titleInput, titleError);
+    valid = false;
+  } else {
+    clearError(titleInput, titleError);
+  }
+
+  const abstractInput = document.getElementById('abstract');
+  const abstractError = document.getElementById('abstract-error');
+  if (!abstractInput || !abstractInput.value.trim()) {
+    if (abstractError) showError(abstractInput, abstractError);
+    valid = false;
+  } else {
+    if (abstractError) clearError(abstractInput, abstractError);
+  }
+
+  const otherMembers = members.filter(m => !m.isCurrentUser);
+  if (otherMembers.length === 0) {
+    const membersError = document.getElementById('members-error');
+    if (membersError) {
+      membersError.textContent = 'Please add at least one group member besides yourself.';
+      membersError.classList.add('is-visible');
+    }
+    valid = false;
+  } else {
+    const membersError = document.getElementById('members-error');
+    if (membersError) membersError.classList.remove('is-visible');
+  }
+  return valid;
+}
+
+function validateStep2() {
+  const err = document.getElementById('upload-error');
+  if (!uploadedFile) {
+    if (err) err.classList.add('is-visible');
+    return false;
+  }
+  if (err) err.classList.remove('is-visible');
+  return true;
+}
+
+function clearError(inputEl, errorEl) {
+  if (inputEl) inputEl.classList.remove('is-error');
+  if (errorEl) errorEl.classList.remove('is-visible');
+}
+function showError(inputEl, errorEl) {
+  if (inputEl) inputEl.classList.add('is-error');
+  if (errorEl) errorEl.classList.add('is-visible');
+}
 
 function populateReview() {
-    const title = document.getElementById('proposal-title').value.trim();
-    const memberNames = Array.from(document.querySelectorAll('#members-list .member-input')).map(i => i.value.trim()).filter(Boolean);
-    document.getElementById('review-title').textContent = title || '—';
-    document.getElementById('review-members').textContent = memberNames.length ? memberNames.join(', ') : '—';
+  const title = document.getElementById('proposal-title').value.trim();
+  const abstract = document.getElementById('abstract').value.trim();
+  const memberNames = members.map(m => m.name).join(', ');
+  document.getElementById('review-title').textContent = title || '—';
+  document.getElementById('review-abstract').textContent = abstract || '—';
+  document.getElementById('review-members').textContent = memberNames || '—';
 }
-function handleSubmit() {
-    if (!validateStep2()) return;
-    document.getElementById('step-panel-2').classList.remove('is-active');
-    successState.classList.add('is-active');
-    modalFooter.style.display = 'none';
-    document.querySelector('.step-indicator').style.display = 'none';
+
+// ---------- Modal navigation (unchanged) ----------
+function goToStep(step) {
+  document.getElementById(`step-panel-${currentStep}`).classList.remove('is-active');
+  currentStep = step;
+  document.getElementById(`step-panel-${step}`).classList.add('is-active');
+
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById(`step-dot-${i}`);
+    if (dot) {
+      dot.classList.remove('is-active', 'is-done');
+      if (i < step) {
+        dot.classList.add('is-done');
+        dot.innerHTML = `<svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.6"/></svg>`;
+      } else if (i === step) {
+        dot.classList.add('is-active');
+        dot.textContent = i;
+      } else {
+        dot.textContent = i;
+      }
+    }
+  }
+  const connector = document.getElementById('connector-1');
+  if (connector) connector.classList.toggle('is-filled', step > 1);
+  const backBtn = document.getElementById('btn-back');
+  if (backBtn) backBtn.disabled = step === 1;
+  const stepCounterSpan = document.getElementById('step-counter');
+  if (stepCounterSpan) stepCounterSpan.textContent = `Step ${step} of ${TOTAL_STEPS}`;
+  if (step === TOTAL_STEPS) {
+    const nextBtn = document.getElementById('btn-next');
+    if (nextBtn) {
+      nextBtn.innerHTML = `<svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5"/></svg> Submit`;
+      nextBtn.className = 'btn-submit';
+    }
+    populateReview();
+  } else {
+    const nextBtn = document.getElementById('btn-next');
+    if (nextBtn) {
+      nextBtn.innerHTML = `Next <svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><polyline points="5,2 10,7 5,12" stroke="currentColor" stroke-width="1.5"/></svg>`;
+      nextBtn.className = 'btn-next';
+    }
+  }
 }
+
 function resetForm() {
-    currentStep = 1;
-    members = [''];
-    uploadedFile = null;
-    successState.classList.remove('is-active');
-    modalFooter.style.display = '';
-    document.querySelector('.step-indicator').style.display = '';
-    document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('is-active'));
-    document.getElementById('step-panel-1').classList.add('is-active');
-    for (let i = 1; i <= TOTAL_STEPS; i++) { 
-    const dot = document.getElementById(`step-dot-${i}`); 
-    const item = document.getElementById(`step-item-${i}`); 
-    dot.classList.remove('is-active', 'is-done'); 
-    item.classList.remove('is-active', 'is-done'); 
-    dot.textContent = i; 
+  currentStep = 1;
+  initMembers();
+  uploadedFile = null;
+  document.getElementById('success-state')?.classList.remove('is-active');
+  document.getElementById('modal-footer').style.display = '';
+  document.querySelector('.step-indicator').style.display = '';
+
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('is-active'));
+  document.getElementById('step-panel-1').classList.add('is-active');
+
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById(`step-dot-${i}`);
+    if (dot) {
+      dot.classList.remove('is-active', 'is-done');
+      dot.textContent = i;
     }
-    document.getElementById('step-dot-1').classList.add('is-active');
-    document.getElementById('step-item-1').classList.add('is-active');
-    document.getElementById('connector-1').classList.remove('is-filled');
-    document.getElementById('proposal-title').value = '';
-    fileInput.value = '';
-    filePreview.classList.remove('is-visible');
-    uploadZone.style.display = '';
-    document.getElementById('file-name').textContent = '—';
-    document.getElementById('file-size').textContent = '—';
-    document.querySelectorAll('.field-error, .members-error, .upload-error').forEach(e => e.classList.remove('is-visible'));
-    document.querySelectorAll('.is-error').forEach(e => e.classList.remove('is-error'));
-    renderMembers();
-    btnBack.disabled = true;
-    btnNext.innerHTML = `Next <svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><polyline points="5,2 10,7 5,12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    btnNext.className = 'btn-next';
-    stepCounter.textContent = 'Step 1 of 2';
+  }
+  const firstDot = document.getElementById('step-dot-1');
+  if (firstDot) firstDot.classList.add('is-active');
+  const connector = document.getElementById('connector-1');
+  if (connector) connector.classList.remove('is-filled');
+
+  document.getElementById('proposal-title').value = '';
+  document.getElementById('abstract').value = '';
+  const fileInput = document.getElementById('file-upload');
+  if (fileInput) fileInput.value = '';
+  const filePreview = document.getElementById('file-preview');
+  if (filePreview) filePreview.classList.remove('is-visible');
+  const uploadZone = document.getElementById('upload-zone');
+  if (uploadZone) uploadZone.style.display = '';
+  document.getElementById('file-name').textContent = '—';
+  document.getElementById('file-size').textContent = '—';
+
+  document.querySelectorAll('.field-error, .members-error, .upload-error').forEach(e => e.classList.remove('is-visible'));
+  document.querySelectorAll('.is-error').forEach(e => e.classList.remove('is-error'));
+
+  renderMembers();
+  const backBtn = document.getElementById('btn-back');
+  if (backBtn) backBtn.disabled = true;
+  const nextBtn = document.getElementById('btn-next');
+  if (nextBtn) {
+    nextBtn.innerHTML = `Next <svg viewBox="0 0 14 14" fill="none" style="width:.875rem;height:.875rem;"><polyline points="5,2 10,7 5,12" stroke="currentColor" stroke-width="1.5"/></svg>`;
+    nextBtn.className = 'btn-next';
+  }
+  const stepCounterSpan = document.getElementById('step-counter');
+  if (stepCounterSpan) stepCounterSpan.textContent = 'Step 1 of 2';
 }
-function escapeHtml(str) { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-renderMembers();
 
+function openModal() {
+  resetForm();
+  isResubmit = false;
+  currentResubmitProposalId = null;
+  document.getElementById('modal-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('proposal-title')?.focus(), 100);
+}
 
-const proposalsData = [
-    {
-    id: 1,
-    title: "Online Lost & Found Portal for Campus Use",
-    status: "Needs Revision",
-    group: "BSIT 2-11",
-    professor: "Prof. Glicel Reyes",
-    date: "Apr 10, 2026",
-    abstract: "A web-based lost and found platform where students and staff can report lost items and found items, with photo uploads and a claim process.",
-    fileName: "Lost_Found_Portal.pdf",
-    fileSize: "1.8 MB",
-    feedback: "Please revise the methodology section – you need to include a detailed explanation of the notification system (email/SMS) and add user acceptance test results. Also, the screenshot for the admin panel is missing."
-    },
-    {
-    id: 2,
-        title: "Online Lost & Found Portal for Campus Use",
-    status: "Submitted",
-    group: "BSIT 2-11",
-    professor: "Prof. Glicel Reyes",
-    date: "Apr 16, 2026",
-    abstract: "A web-based lost and found platform where students and staff can report lost items and found items, with photo uploads and a claim process.",
-    fileName: "Lost_Found_Portal_v2.pdf",
-    fileSize: "1.9 MB",
-    feedback: ""
-    },
-    {
-    id: 3,
-    title: "General Lost & Found Portal for Campus Use",
-    status: "Rejected",
-    group: "BSIT 2-11",
-    professor: "Prof. Glicel Reyes",
-    date: "Apr 2, 2026",
-    abstract: "A web-based lost and found platform where students and staff can report lost items and found items, with photo uploads and a claim process.",
-    fileName: "General_Lost_Found_Portal.pdf",
-    fileSize: "537 KB",
-    feedback: "The title is a bit too broad and doesn't reflect the campus-specific focus. Please update the title to be more specific to our university. Additionally, the abstract needs to be expanded to include the key features of your platform and how it addresses user needs. Lastly, make sure to upload the PDF file of your proposal."
-    }
-];
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('is-open');
+  document.body.style.overflow = '';
+}
 
-// View modal elements
-const viewModal = document.getElementById('proposal-view-modal');
-const closeViewModalButtons = document.querySelectorAll('#close-view-modal, #close-view-modal-footer');
-const viewPropTitle = document.getElementById('view-prop-title');
-const viewGroup = document.getElementById('view-group');
-const viewProfessor = document.getElementById('view-professor');
-const viewDate = document.getElementById('view-date');
-const viewBadge = document.getElementById('view-badge');
-const viewDocName = document.getElementById('view-doc-name');
-const viewDocSize = document.getElementById('view-doc-size');
-const viewAbstract = document.getElementById('view-abstract');
-const viewPreviousFeedbackDiv = document.getElementById('view-previous-feedback');
-const viewFeedbackText = document.getElementById('view-feedback-text');
-const viewDownloadBtn = document.getElementById('view-download-btn');
+// ---------- API calls ----------
+async function createProposal(formData) {
+  const token = getToken();
+  const response = await fetch(`${API_BASE}/proposals`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || 'Failed to create proposal');
+  }
+  return await response.json();
+}
 
-function openProposalViewModal(proposal) {
-    // Set title
-    viewPropTitle.textContent = proposal.title;
-    viewGroup.innerHTML = `<svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg> ${proposal.group}`;
-    viewProfessor.innerHTML = `<svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg> ${proposal.professor}`;
-    viewDate.innerHTML = `<svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 1v3M8 1v3" stroke="currentColor" stroke-width="1.2"/></svg> Submitted ${proposal.date}`;
+async function updateProposal(proposalId, formData) {
+  const token = getToken();
+  const response = await fetch(`${API_BASE}/proposals/${proposalId}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err.message || 'Failed to update proposal');
+  }
+  return await response.json();
+}
 
-    // Status badge
-    const statusClass = proposal.status.toLowerCase().replace(' ', '-');
-    viewBadge.className = `status-badge ${statusClass}`;
-    viewBadge.textContent = proposal.status === 'Needs Revision' ? 'Needs Revision' : proposal.status;
+async function handleSubmit() {
+  if (!validateStep2()) return;
 
-    // Document info
-    viewDocName.textContent = proposal.fileName;
-    viewDocSize.textContent = proposal.fileSize + ' · PDF';
+  const formData = new FormData();
+  formData.append('title', document.getElementById('proposal-title').value.trim());
+  formData.append('abstract', document.getElementById('abstract').value.trim());
+  const memberIds = members.filter(m => !m.isCurrentUser).map(m => m.userId);
+  formData.append('members', JSON.stringify(memberIds));
+  if (uploadedFile) {
+    formData.append('file', uploadedFile);
+  }
 
-    // Abstract
-    viewAbstract.textContent = proposal.abstract;
-
-    // Previous feedback
-    if (proposal.status === 'Needs Revision' && proposal.feedback) {
-    viewFeedbackText.textContent = proposal.feedback;
-    viewPreviousFeedbackDiv.style.display = 'block';
+  try {
+    if (isResubmit && currentResubmitProposalId) {
+      await updateProposal(currentResubmitProposalId, formData);
+      showToast('Proposal resubmitted successfully!', 'success');
     } else {
-    viewPreviousFeedbackDiv.style.display = 'none';
+      await createProposal(formData);
+      showToast('Proposal submitted successfully!', 'success');
     }
+    await loadCurrentUser();
+    await loadProposals();
+    closeModal();
+  } catch (err) {
+    console.error(err);
+    showToast(err.message, 'error');
+  }
+}
 
-    // Download button event
-    viewDownloadBtn.onclick = () => alert(`Downloading: ${proposal.fileName}\n(integration with real file download would go here)`);
+// ---------- View proposal modal ----------
+function openProposalViewModal(proposal) {
+  document.getElementById('modal-title-text').textContent = proposal.title;
+  document.getElementById('view-prop-title').textContent = proposal.title;
+  const membersStr = proposal.members ? proposal.members.map(m => m.name).join(', ') : 'No members';
+  document.getElementById('view-group').innerHTML = `<svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg> ${escapeHtml(membersStr)}`;
+  const adviserName = proposal.adviser ? proposal.adviser.name : 'Not assigned';
+  document.getElementById('view-professor').innerHTML = `<svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 11c0-2.485 2.015-4 4.5-4s4.5 1.515 4.5 4" stroke="currentColor" stroke-width="1.2"/></svg> ${escapeHtml(adviserName)}`;
+  document.getElementById('view-date').innerHTML = `<svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2.5" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.2"/><path d="M4 1v3M8 1v3" stroke="currentColor" stroke-width="1.2"/></svg> Submitted ${new Date(proposal.submissionDate).toLocaleDateString()}`;
+  const statusClass = proposal.status.toLowerCase().replace(' ', '-');
+  const badge = document.getElementById('view-badge');
+  badge.className = `status-badge ${statusClass}`;
+  badge.textContent = proposal.status;
+  document.getElementById('view-doc-name').textContent = proposal.file ? proposal.file : 'No document attached';
+  document.getElementById('view-doc-size').textContent = proposal.file ? 'PDF' : '';
+  document.getElementById('view-abstract').textContent = proposal.abstract || 'No abstract provided.';
+  const prevFeedbackDiv = document.getElementById('view-previous-feedback');
+  if (proposal.status === 'Needs Revision' && proposal.feedback && proposal.feedback.length) {
+    const lastFeedback = proposal.feedback[proposal.feedback.length - 1];
+    document.getElementById('view-feedback-text').textContent = lastFeedback.comment;
+    prevFeedbackDiv.style.display = 'block';
+  } else {
+    prevFeedbackDiv.style.display = 'none';
+  }
+  document.getElementById('view-download-btn').onclick = () => {
+    if (proposal.file) {
+      window.open(`${API_BASE}/uploads/${proposal.file}`, '_blank');
+    } else {
+      alert('No document attached.');
+    }
+  };
 
-    // Show modal
-    viewModal.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
+  const resubmitBtnDiv = document.querySelector('.resubmit-btn');
+  if (proposal.status === 'Needs Revision') {
+    resubmitBtnDiv.innerHTML = `<button class="btn btn-primary" id="resubmitFromViewBtn">Resubmit Proposal</button>`;
+    document.getElementById('resubmitFromViewBtn').onclick = () => {
+      closeViewModal();
+      openResubmitModal(proposal);
+    };
+  } else {
+    resubmitBtnDiv.innerHTML = '';
+  }
+
+  document.getElementById('proposal-view-modal').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeViewModal() {
-    viewModal.classList.remove('is-open');
-    document.body.style.overflow = '';
+  document.getElementById('proposal-view-modal').classList.remove('is-open');
+  document.body.style.overflow = '';
 }
 
-closeViewModalButtons.forEach(btn => {
-    btn.addEventListener('click', closeViewModal);
-});
-viewModal.addEventListener('click', (e) => {
-    if (e.target === viewModal) closeViewModal();
-});
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && viewModal.classList.contains('is-open')) closeViewModal();
-});
+function openResubmitModal(proposal) {
+  isResubmit = true;
+  currentResubmitProposalId = proposal._id;
 
-// Attach click handlers to all "View" buttons (desktop and mobile)
-function attachViewHandlers() {
-    const viewButtons = document.querySelectorAll('.card-action, .mobile-card-action');
-    viewButtons.forEach((btn, idx) => {
-    // Remove existing listeners to avoid duplication
-    btn.removeEventListener('click', handleViewClick);
-    btn.addEventListener('click', handleViewClick);
-    });
-}
+  document.getElementById('proposal-title').value = proposal.title;
+  document.getElementById('abstract').value = proposal.abstract || '';
 
-function handleViewClick(e) {
-    e.stopPropagation();
-    // Find the parent card
-    const card = this.closest('.proposal-card, .mobile-card');
-    if (!card) return;
-    const status = card.dataset.status;
-    // Match by title and status
-    const titleElem = card.querySelector('.card-title, .mobile-card-title');
-    const title = titleElem ? titleElem.textContent.trim() : '';
-    const proposal = proposalsData.find(p => p.title === title && p.status === status);
-    if (proposal) {
-    openProposalViewModal(proposal);
-    } else {
-    // Fallback if not found in data (should not happen)
-    alert('Proposal details not found.');
+  if (proposal.members && proposal.members.length) {
+    const currentId = getCurrentUserId();
+    members = proposal.members.map(m => ({
+      userId: m.user_id,
+      name: m.name,
+      isCurrentUser: (m.user_id === currentId)
+    }));
+    const currentIndex = members.findIndex(m => m.isCurrentUser);
+    if (currentIndex > 0) {
+      const [current] = members.splice(currentIndex, 1);
+      members.unshift(current);
     }
+    renderMembers();
+  } else {
+    initMembers();
+    renderMembers();
+  }
+
+  uploadedFile = null;
+  const fileInput = document.getElementById('file-upload');
+  if (fileInput) fileInput.value = '';
+  const filePreview = document.getElementById('file-preview');
+  if (filePreview) filePreview.classList.remove('is-visible');
+  const uploadZone = document.getElementById('upload-zone');
+  if (uploadZone) uploadZone.style.display = '';
+  document.getElementById('file-name').textContent = '—';
+  document.getElementById('file-size').textContent = '—';
+
+  resetForm();
+  document.getElementById('proposal-title').value = proposal.title;
+  document.getElementById('abstract').value = proposal.abstract || '';
+  document.getElementById('modal-overlay').classList.add('is-open');
+  document.body.style.overflow = 'hidden';
 }
 
-// Call after initial render and whenever dynamic cards are added (not needed here)
-attachViewHandlers();
-
-// If you have dynamic filtering that regenerates cards, you may need to re‑attach handlers.
-// For simplicity, we can observe the DOM or call attachViewHandlers after filter updates.
-// But since your filters only hide/show, the existing buttons remain.
-// For safety, call again after filter functions (you can add inside applyFilters and applyMobileFilters).
-// I'll add a line inside your existing applyFilters and applyMobileFilters:
-// (You'll need to add `attachViewHandlers();` inside those functions in your original code.)
-// But to avoid modifying your existing functions, I'll override them here.
-// ========== PATCH YOUR EXISTING FILTER FUNCTIONS TO RE-ATTACH HANDLERS ==========
-// Store original functions
-const originalApplyFilters = window.applyFilters;
-const originalApplyMobileFilters = window.applyMobileFilters;
-if (typeof originalApplyFilters === 'function') {
-    window.applyFilters = function() {
-    originalApplyFilters();
-    attachViewHandlers();
-    };
+// ---------- File upload handling ----------
+function handleFile(file) {
+  ['upload-error', 'upload-type-error', 'upload-size-error'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('is-visible');
+  });
+  if (!file) return;
+  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+    document.getElementById('upload-type-error')?.classList.add('is-visible');
+    return;
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    document.getElementById('upload-size-error')?.classList.add('is-visible');
+    return;
+  }
+  uploadedFile = file;
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = (file.size / 1024).toFixed(1) + ' KB · ' + file.name.split('.').pop().toUpperCase();
+  document.getElementById('file-preview').classList.add('is-visible');
+  document.getElementById('upload-zone').style.display = 'none';
+  populateReview();
 }
-if (typeof originalApplyMobileFilters === 'function') {
-    window.applyMobileFilters = function() {
-    originalApplyMobileFilters();
-    attachViewHandlers();
-    };
-}
-// Also run after initial load
 
-const logoutBtn = document.getElementById('logoutBtn');
-logoutBtn.addEventListener('click', () => {
-    // Here you would typically clear authentication tokens or session data
-    // For this example, we'll just redirect to a login page
-    window.location.href = 'index.html'; // Change to your actual login page
+// ---------- Filtering ----------
+function applyFilters() {
+  renderDesktop();
+}
+function applyMobileFilters() {
+  renderMobile();
+}
+
+// ---------- Logout ----------
+function logout() {
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = './index.html';
+}
+
+// ---------- Hamburger menu ----------
+function initHamburger() {
+  const hamburger = document.getElementById('hamburger');
+  const mobileNav = document.getElementById('mobile-nav');
+  if (hamburger && mobileNav) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileNav.classList.contains('is-open');
+      if (!isOpen) {
+        mobileNav.style.display = 'flex';
+        setTimeout(() => mobileNav.classList.add('is-open'), 10);
+        hamburger.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      } else {
+        mobileNav.classList.remove('is-open');
+        hamburger.classList.remove('open');
+        document.body.style.overflow = '';
+        mobileNav.addEventListener('transitionend', () => {
+          if (!mobileNav.classList.contains('is-open')) mobileNav.style.display = 'none';
+        }, { once: true });
+      }
+    });
+  }
+}
+
+// ---------- Initialization ----------
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await loadCurrentUser();
+    if (!currentUser) {
+      window.location.href = 'login_page.html';
+      return;
+    }
+    await loadClassmates();
+    await loadProposals();
+
+    initMembers();
+    renderMembers();
+    initHamburger();
+
+    // Modal event listeners
+    document.querySelectorAll('.open-modal-btn').forEach(btn => btn.addEventListener('click', openModal));
+    document.getElementById('close-modal')?.addEventListener('click', closeModal);
+    document.getElementById('btn-done')?.addEventListener('click', closeModal);
+    document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    });
+    document.getElementById('btn-back')?.addEventListener('click', () => {
+      if (currentStep > 1) goToStep(currentStep - 1);
+    });
+    document.getElementById('btn-next')?.addEventListener('click', () => {
+      if (currentStep === 1 && validateStep1()) goToStep(2);
+      else if (currentStep === 2 && validateStep2()) handleSubmit();
+    });
+
+    // File upload
+    const uploadZone = document.getElementById('upload-zone');
+    const fileInput = document.getElementById('file-upload');
+    uploadZone?.addEventListener('click', () => fileInput?.click());
+    uploadZone?.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone?.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone?.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput?.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    document.getElementById('remove-file')?.addEventListener('click', () => {
+      uploadedFile = null;
+      fileInput.value = '';
+      document.getElementById('file-preview')?.classList.remove('is-visible');
+      document.getElementById('upload-zone').style.display = '';
+      document.getElementById('file-name').textContent = '—';
+      document.getElementById('file-size').textContent = '—';
+    });
+
+    // Add member button
+    document.getElementById('add-member-btn')?.addEventListener('click', addMember);
+
+    // Filtering (desktop)
+    const statCards = document.querySelectorAll('.stat-card');
+    const searchInput = document.getElementById('search-input');
+    statCards.forEach(card => {
+      card.addEventListener('click', () => {
+        statCards.forEach(c => c.classList.remove('is-active'));
+        card.classList.add('is-active');
+        activeFilter = card.dataset.filter;
+        applyFilters();
+      });
+    });
+    searchInput?.addEventListener('input', () => {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      applyFilters();
+    });
+
+    // Mobile filtering
+    const mobilePills = document.querySelectorAll('.mobile-stat-pill');
+    const mobileSearch = document.getElementById('mobile-search');
+    mobilePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        mobilePills.forEach(p => p.classList.remove('is-active'));
+        pill.classList.add('is-active');
+        mobileFilter = pill.dataset.filter;
+        applyMobileFilters();
+      });
+    });
+    mobileSearch?.addEventListener('input', () => {
+      mobileQuery = mobileSearch.value.trim().toLowerCase();
+      applyMobileFilters();
+    });
+
+    // Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+
+  } catch (err) {
+    console.error('Initialization failed:', err);
+    showToast('Failed to load dashboard. Please refresh.', 'error');
+  }
 });
-
-attachViewHandlers();

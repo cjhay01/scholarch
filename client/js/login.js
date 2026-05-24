@@ -2,7 +2,7 @@ const API_BASE_URL = `${window.location.origin}/api`;
 
 async function handleLogin(username, password, remember) {
   try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -16,6 +16,12 @@ async function handleLogin(username, password, remember) {
       name: data.name,
       username: data.username,
       role: data.role,
+      email: data.email,
+      contact: data.contact || "",
+      department: data.department || "CEIT",
+      bio: data.bio || "",
+      proposals: data.proposals || [],
+      year_and_section: data.year_and_section || "",
     };
 
     if (remember) {
@@ -26,7 +32,6 @@ async function handleLogin(username, password, remember) {
       sessionStorage.setItem('user', JSON.stringify(userData));
     }
 
-    // Redirect based on role
     const role = data.role.toLowerCase();
     if (role === 'admin') window.location.href = '/admin_dashboard.html';
     else if (role === 'faculty') window.location.href = '/faculty_dashboard.html';

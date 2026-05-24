@@ -7,717 +7,92 @@
   <title>Scholarch | Faculty Dashboard - Create Accounts</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="icon" href="/images/icon.ico" type="image/png">
+  <link rel="icon" href="../images/icon.ico" type="image/png">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <style>
-    /* ---------- ROOT VARIABLES (match faculty dashboard) ---------- */
-    :root {
-      font-size: 19px;
-      --clr-brand:         #436DE9;
-      --clr-brand-dark:    #2f56c7;
-      --clr-brand-dim:     #d6e0fa;
-      --clr-brand-faint:   #eff4ff;
-      --clr-yellow:        #f0e400;
-      --clr-text:          #111;
-      --clr-text-muted:    #666;
-      --clr-text-ghost:    #999;
-      --clr-text-faint:    #bbb;
-      --clr-bg:            #f8f9fc;
-      --clr-surface:       #ffffff;
-      --clr-border:        #eaecf0;
-      --clr-border-hover:  #c5c9d4;
-      --clr-draft:         #888;
-      --clr-draft-bg:      #f4f4f5;
-      --clr-amber:         #d97706;
-      --clr-amber-bg:      #fffbeb;
-      --clr-green:         #16a34a;
-      --clr-green-bg:      #f0fdf4;
-      --clr-red:           #dc2626;
-      --clr-red-bg:        #fef2f2;
-      --clr-error:         #dc2626;
-      --clr-success:       #16a34a;
-      --font-sans:         'Inter', sans-serif;
-      --font-body:         'IBM Plex Sans', sans-serif;
-      --radius-sm:         0.5rem;
-      --radius-md:         0.75rem;
-      --radius-lg:         1rem;
-      --radius-full:       9999px;
-      --shadow-sm:         0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md:         0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-      --sidebar-w:         15rem;
-      --topbar-h:          3.75rem;
-      --mobile-topbar-h:   3.25rem;
-      --ease-fast:         0.15s ease;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: var(--font-sans);
-      background: var(--clr-bg);
-      color: var(--clr-text);
-      -webkit-font-smoothing: antialiased;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      width: 100% !important;
-    }
-
-    a { text-decoration: none; color: inherit; }
-    button { cursor: pointer; font-family: inherit; background: none; border: none; }
-
-    /* ---------- DESKTOP GRID (exactly like faculty dashboard) ---------- */
-    .grid-container {
-      display: grid;
-      grid-template-columns: var(--sidebar-w) 1fr;
-      flex: 1;
-      min-height: 0;
-    }
-
-    .sidebar {
-      background: var(--clr-surface);
-      border-right: 1px solid var(--clr-border);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      overflow-y: auto;
-    }
-    .sidebar-logo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0 1.25rem;
-      height: var(--topbar-h);
-      border-bottom: 1px solid var(--clr-border);
-      flex-shrink: 0;
-    }
-    .sidebar-logo svg { width: 1.375rem; height: 1.375rem; }
-    .logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); letter-spacing: -0.02em; }
-    .logo-text .ch { color: var(--clr-yellow); }
-    .sidebar-nav {
-      flex: 1;
-      padding: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-    }
-    .nav-section-label {
-      font-family: var(--font-body);
-      font-size: 0.65rem;
-      font-weight: 500;
-      color: var(--clr-text-faint);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0.5rem 0.5rem 0.25rem;
-      margin-top: 0.5rem;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.45rem 0.75rem;
-      border-radius: var(--radius-sm);
-      font-family: var(--font-body);
-      font-size: 0.85rem;
-      color: var(--clr-text-muted);
-      transition: background var(--ease-fast), color var(--ease-fast);
-    }
-    .nav-item svg { width: 0.95rem; height: 0.95rem; opacity: 0.6; }
-    .nav-item:hover { background: var(--clr-bg); color: var(--clr-text); }
-    .nav-item.is-active { background: var(--clr-brand-dim); color: var(--clr-brand); font-weight: 500; }
-    .nav-item.is-active svg { opacity: 1; }
-    .sidebar-footer {
-      padding: 0.75rem 1rem;
-      border-top: 1px solid var(--clr-border);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-shrink: 0;
-      margin-top: auto;
-    }
-    .avatar-circle {
-      width: 2rem; height: 2rem;
-      border-radius: var(--radius-full);
-      background: var(--clr-brand);
-      color: #fff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .sidebar-user-info { flex: 1; min-width: 0; }
-    .sidebar-user-name { font-size: 0.8rem; font-weight: 500; color: var(--clr-text); }
-    .sidebar-user-role { font-family: var(--font-body); font-size: 0.65rem; color: var(--clr-text-ghost); }
-
-    .right-column {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-    }
-    .topbar {
-      background: var(--clr-surface);
-      border-bottom: 1px solid var(--clr-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 1.75rem;
-      height: var(--topbar-h);
-      flex-shrink: 0;
-      z-index: 50;
-    }
-    .topbar-left { display: flex; flex-direction: column; }
-    .topbar-title { font-size: 1rem; font-weight: 600; color: var(--clr-brand-dark); letter-spacing: -0.02em; }
-    .topbar-sub { font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-ghost); }
-    .avatar-btn {
-      width: 2rem; height: 2rem;
-      border-radius: var(--radius-full);
-      background: var(--clr-brand);
-      color: #fff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-    }
-    .topbar-right svg {
-      height: 1.4rem;
-      color: var(--clr-text-muted);
-    }
-
-    .main-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem 1.75rem;
-      min-height: 0;
-    }
-
-    /* Cards & forms */
-    .card {
-      background: var(--clr-surface);
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--clr-border);
-      margin-bottom: 1.75rem;
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-    }
-    .card-header {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--clr-border);
-      background: var(--clr-surface);
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      opacity: 0.6;
-    }
-    .card-body { padding: 1.5rem; }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1.25rem;
-      margin-bottom: 1.5rem;
-    }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
-    .field label {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--clr-text-muted);
-    }
-    .field label .required { color: var(--clr-error); }
-    .field input {
-      padding: 0.6rem 0.75rem;
-      border: 1px solid var(--clr-border);
-      border-radius: var(--radius-md);
-      font-family: var(--font-body);
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-    .field input:focus {
-      outline: none;
-      border-color: var(--clr-brand);
-      box-shadow: 0 0 0 3px rgba(67,109,233,0.1);
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.2rem;
-      border-radius: var(--radius-full);
-      font-weight: 500;
-      border: none;
-      cursor: pointer;
-      font-size: 0.875rem;
-      transition: all 0.2s;
-    }
-    .btn-primary { background: var(--clr-brand); color: white; display: inline-flex; align-items: center; justify-content: center; }
-    .btn-primary:hover { background: var(--clr-brand-dark); }
-    .btn-outline { background: transparent; border: 1px solid var(--clr-border); color: var(--clr-text-muted); }
-    .btn-outline:hover { border-color: var(--clr-brand); color: var(--clr-brand); background: var(--clr-brand-faint); }
-    .btn-icon-danger { background: transparent; border: none; color: var(--clr-text-ghost); cursor: pointer; padding: 0.25rem; }
-    .btn-icon-danger:hover { color: var(--clr-red); }
-
-    .upload-zone {
-      border: 2px dashed var(--clr-border);
-      border-radius: var(--radius-md);
-      padding: 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-bottom: 1rem;
-    }
-    .upload-zone:hover {
-      border-color: var(--clr-brand);
-      background: var(--clr-brand-faint);
-    }
-    .upload-icon-svg {
-      width: 2.5rem;
-      height: 2.5rem;
-      margin: 0 auto 0.75rem;
-      color: var(--clr-brand);
-      stroke: currentColor;
-      fill: none;
-    }
-    .upload-zone p {
-      font-size: 0.8rem;
-    }
-
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
-    }
-    .data-table th, .data-table td {
-      padding: 0.75rem;
-      text-align: left;
-      border-bottom: 1px solid var(--clr-border);
-    }
-    .data-table th { background: var(--clr-bg); font-weight: 600; }
-    .action-btn {
-      background: none;
-      border: none;
-      color: var(--clr-text-ghost);
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .action-btn:hover { color: var(--clr-error); }
-    .empty-row td { text-align: center; color: var(--clr-text-ghost); padding: 2rem; }
-    .summary-bar {
-      background: var(--clr-brand-faint);
-      border-radius: var(--radius-md);
-      padding: 0.75rem 1rem;
-      margin-top: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .summary-bar span {
-      font-family: var(--font-body);
-      font-size: 0.875rem;
-      color: var(--clr-text);
-    }
-    .summary-bar span strong {
-      color: var(--clr-brand);
-    }
-    .summary-bar #totalPendingSpan {
-      font-weight: 600;
-      color: var(--clr-yellow);
-    }
-
-    /* History list styles */
-    .history-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-    .history-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--clr-border);
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-    .history-item:last-child {
-      border-bottom: none;
-    }
-    .history-info {
-      flex: 2;
-      min-width: 150px;
-    }
-    .history-filename {
-      font-weight: 500;
-      color: var(--clr-text);
-      font-size: 0.85rem;
-    }
-    .history-timestamp {
-      font-size: 0.7rem;
-      color: var(--clr-text-ghost);
-    }
-    .history-actions {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
-    .empty-state-history {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      text-align: center;
-      color: var(--clr-text-ghost);
-    }
-    .empty-state-history svg {
-      width: 3rem;
-      height: 3rem;
-      margin-bottom: 0.75rem;
-      color: var(--clr-text-faint);
-    }
-
-    /* Site footer (desktop) */
-    .site-footer {
-      padding: 1rem 1.5rem;
-      border-top: 1px solid var(--clr-border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      background: var(--clr-surface);
-      flex-shrink: 0;
-    }
-    .footer-brand { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); }
-    .footer-links { display: flex; gap: 1.5rem; }
-    .footer-links a { font-family: var(--font-body); font-size: 0.75rem; color: var(--clr-text-faint); transition: color var(--ease-fast); }
-    .footer-links a:hover { color: var(--clr-brand); }
-
-    /* Success modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(4px);
-      z-index: 300;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
-    }
-    .modal-overlay.is-open { opacity: 1; pointer-events: all; }
-    .status-modal {
-      background: var(--clr-surface);
-      border-radius: var(--radius-lg);
-      max-width: 28rem;
-      width: 90%;
-      padding: 2rem 1.5rem;
-      text-align: center;
-      transform: scale(0.96);
-      transition: transform 0.2s ease;
-      box-shadow: var(--shadow-md);
-    }
-    .modal-overlay.is-open .status-modal { transform: scale(1); }
-    .spinner {
-      display: inline-block;
-      width: 2rem;
-      height: 2rem;
-      border: 3px solid var(--clr-border);
-      border-top-color: var(--clr-brand);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 1rem 0;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .success-checkmark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 4rem;
-      height: 4rem;
-      background: var(--clr-success-bg, #f0fdf4);
-      border-radius: 50%;
-      margin: 0 auto 1rem;
-    }
-    .success-checkmark svg {
-      width: 2.2rem;
-      height: 2.2rem;
-      color: var(--clr-success);
-      stroke: currentColor;
-      stroke-width: 2;
-    }
-    .modal-success-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: var(--clr-text);
-    }
-    .modal-success-message {
-      font-family: var(--font-body);
-      font-size: 0.9rem;
-      color: var(--clr-text-muted);
-      margin-bottom: 1.5rem;
-      line-height: 1.5;
-    }
-
-    /* ========== MOBILE STYLES ========== */
-    .mobile-topbar, .mobile-nav, .mobile-content { display: none; }
-
-    @media (max-width: 56em) {
-      body {
-        overflow: auto;
-        height: auto;
-        display: block;
-      }
-      .grid-container, .site-footer {
-        display: none;
-      }
-      .mobile-topbar {
-        display: flex;
-        position: sticky;
-        top: 0;
-        z-index: 60;
-        background: var(--clr-surface);
-        border-bottom: 1px solid var(--clr-border);
-        height: var(--mobile-topbar-h);
-        padding: 0 1rem;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .mobile-topbar-right { display: flex; gap: 0.5rem; align-items: center; }
-      .mobile-logo { display: flex; align-items: center; gap: 0.4rem; }
-      .mobile-logo-text { font-size: 1rem; font-weight: 600; color: var(--clr-brand); }
-      .hamburger {
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-        background: none;
-        border: none;
-        padding: 0.375rem;
-      }
-      .hamburger span {
-        display: block;
-        width: 1.375rem;
-        height: 0.175rem;
-        background: var(--clr-text);
-        border-radius: 9999px;
-        transition: all 0.2s ease;
-      }
-      .mobile-nav {
-        display: flex;
-        position: fixed;
-        inset: 0;
-        background: var(--clr-surface);
-        z-index: 55;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2rem;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease;
-      }
-      .mobile-nav.is-open {
-        opacity: 1;
-        pointer-events: all;
-      }
-      .mobile-nav-links {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 1.25rem;
-      }
-      .mobile-nav-links a {
-        font-family: var(--font-body);
-        font-size: 1.125rem;
-        font-weight: 500;
-        color: var(--clr-text-muted);
-        text-decoration: none;
-      }
-      .mobile-nav-links a.mobile-nav-active {
-        color: var(--clr-brand);
-        font-weight: 600;
-      }
-      .mobile-nav-auth {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-      }
-      .btn-nav-auth {
-        font-family: var(--font-body);
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--clr-text);
-        border: 1.5px solid var(--clr-border);
-        border-radius: 9999px;
-        padding: 0.6em 1.75em;
-        min-width: 9rem;
-        text-align: center;
-        background: transparent;
-      }
-      .mobile-content {
-        display: flex;
-        flex-direction: column;
-      }
-      .mobile-greeting-card, .card {
-        margin: 1rem;
-      }
-      .mobile-greeting-card {
-        background: var(--clr-brand);
-        border-radius: var(--radius-lg);
-        padding: 1rem;
-        margin-bottom: 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        color: white;
-      }
-      .mobile-greeting-card h2 { font-size: 1.125rem; margin-bottom: 0.25rem; color: var(--clr-yellow); }
-      .mobile-greeting-card p { font-size: 0.75rem; opacity: 0.9; }
-      .mobile-avatar {
-        background: rgba(255,255,255,0.2);
-        width: 2.5rem;
-        height: 2.5rem;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-      }
-      .mobile-card {
-        background: var(--clr-surface);
-        border: 1px solid var(--clr-border);
-        border-radius: var(--radius-md);
-        padding: 1rem;
-        margin-bottom: 1rem;
-        font-size: 0.8rem;
-      }
-      .mobile-footer {
-        padding: 1rem;
-        border-top: 1px solid var(--clr-border);
-        background: var(--clr-surface);
-        margin-top: 1rem;
-        text-align: center;
-        font-size: 0.75rem;
-        color: var(--clr-text-ghost);
-      }
-      .mobile-footer .logo-text {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--clr-brand);
-      }
-      .mobile-footer span {
-        display: inline-block;
-        margin: 0 0.25rem;
-      }
-      .mobile-footer-links {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-      }
-      .history-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .history-actions {
-        align-self: flex-end;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="../styles/faculty_create.css">
 </head>
 <body>
 
-<!-- MOBILE TOPBAR & NAV -->
 <header class="mobile-topbar">
-  <a href="#" class="mobile-logo"><span class="mobile-logo-text">Scholar<span style="color:var(--clr-yellow);">ch</span></span></a>
+  <a href="./index.html" class="mobile-logo"><span class="mobile-logo-text">Scholar<span class="ch">ch</span></span></a>
   <div class="mobile-topbar-right">
-    <button class="hamburger" id="hamburgerBtn" aria-label="Menu"><span></span><span></span><span></span></button>
+    <button class="hamburger" id="hamburgerBtn"><span></span><span></span><span></span></button>
   </div>
 </header>
-<nav class="mobile-nav" id="mobileNav" aria-hidden="true">
+
+<nav class="mobile-nav" id="mobileNav">
   <ul class="mobile-nav-links">
-    <li><a href="#">Dashboard</a></li>
-    <li><a href="#">Browse Archive</a></li>
-    <li><a href="#" class="mobile-nav-active">Create Student Accounts</a></li>
-    <li><a href="#">Profile</a></li>
+    <li><a href="./faculty_dashboard.html">Dashboard</a></li>
+    <li><a href="./archive.html">Browse Archive</a></li>
+    <li><a href="./faculty_create.html  " class="mobile-nav-active">Create Student Accounts</a></li>
+    <li><a href="./faculty_profile.html">Profile</a></li>
   </ul>
-  <div class="mobile-nav-auth"><a href="#" class="btn-nav-auth">Log out</a></div>
+  <div class="mobile-nav-auth" id="mobileAuth"></div>
 </nav>
+
 <div class="mobile-content" id="mobileContent">
   <div class="mobile-greeting-card">
     <div><h2>Create Accounts</h2><p>Add students manually or via Excel</p></div>
-    <div class="mobile-avatar">RM</div>
+    <div class="mobile-avatar" id="mobileAvatar">RM</div>
   </div>
-  <!-- Mobile manual entry fields -->
-  <div class="card" style="margin-bottom:1rem;">
-    <div class="card-header"><span style="font-size:1.2rem;">📘</span> Manual Entry</div>
+
+  <div class="card">
+    <div class="card-header"><span>📘</span> Manual Entry</div>
     <div class="card-body">
-      <div class="mobile-form-grid" style="display:flex; flex-direction:column; gap:1rem;">
-        <div class="field"><label>Student ID <span class="required">*</span> <span style="font-size:0.7rem;">(xx-xxxx)</span></label><input type="text" id="mobileStudentId" placeholder="23-1234"></div>
+      <div class="mobile-form-grid">
+        <div class="field"><label>Student ID <span class="required">*</span> <span class="field-hint">(xx-xxxx)</span></label><input type="text" id="mobileStudentId" placeholder="23-1234"></div>
         <div class="field"><label>First Name <span class="required">*</span></label><input type="text" id="mobileFirstName" placeholder="Juan"></div>
         <div class="field"><label>Last Name <span class="required">*</span></label><input type="text" id="mobileLastName" placeholder="Dela Cruz"></div>
-        <div class="field"><label>Year & Section <span class="required">*</span> <span style="font-size:0.7rem;">(e.g., BSIT 2-11)</span></label><input type="text" id="mobileYearSection" placeholder="BSIT 2-11"></div>
+        <div class="field"><label>Year & Section <span class="required">*</span> <span class="field-hint">(e.g., BSIT 2-11)</span></label><input type="text" id="mobileYearSection" placeholder="BSIT 2-11"></div>
         <div class="field"><label>Email <span class="required">*</span></label><input type="email" id="mobileEmail" placeholder="student@plv.edu.ph"></div>
         <div class="field"><label>Contact <span class="required">*</span></label><input type="tel" id="mobileContact" placeholder="09123456789"></div>
       </div>
-      <div style="display:flex; justify-content:flex-end; margin-top:1rem;"><button class="btn btn-primary" id="mobileAddManualBtn">+ Add to List</button></div>
+      <div class="btn-container"><button class="btn btn-primary" id="mobileAddManualBtn">+ Add to List</button></div>
     </div>
   </div>
-  <!-- Mobile bulk upload -->
-  <div class="card" style="margin-bottom:1rem;">
-    <div class="card-header"><span style="font-size:1.2rem;">📂</span> Bulk Upload (Excel / CSV)</div>
+
+  <div class="card">
+    <div class="card-header"><span>📂</span> Bulk Upload (Excel / CSV)</div>
     <div class="card-body">
       <div class="upload-zone" id="mobileUploadZone">
         <svg class="upload-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p>Click or drag & drop an Excel (.xlsx, .xls) or CSV file</p>
-        <p style="font-size: 0.75rem; color: var(--clr-text-ghost); margin-top: 0.5rem;">Expected: studentID, firstName, lastName, yearSection, email, contact</p>
-        <input type="file" id="mobileFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+        <p class="upload-hint">Expected: studentID, firstName, lastName, yearSection, email, contact</p>
+        <input type="file" id="mobileFileInput" accept=".xlsx, .xls, .csv">
       </div>
       <div id="mobilePreviewContainer" style="display: none;">
-        <h4 style="margin-bottom: 0.75rem;">Preview (first 5 rows)</h4>
-        <div style="overflow-x: auto;"><table class="data-table" id="mobilePreviewTable"><thead><tr><th>ID</th><th>First</th><th>Last</th><th>Yr/Sec</th><th>Email</th><th>Contact</th></tr></thead><tbody id="mobilePreviewBody"></tbody></table></div>
-        <div style="margin-top: 1rem; display: flex; gap: 0.75rem; justify-content: flex-end;"><button class="btn btn-outline" id="mobileCancelUploadBtn">Cancel</button><button class="btn btn-primary" id="mobileConfirmUploadBtn">Add All to List</button></div>
+        <h4>Preview (first 5 rows)</h4>
+        <div class="table-wrapper"><table class="data-table" id="mobilePreviewTable"><thead><tr><th>ID</th><th>First</th><th>Last</th><th>Yr/Sec</th><th>Email</th><th>Contact</th></tr></thead><tbody id="mobilePreviewBody"></tbody></table></div>
+        <div class="preview-actions"><button class="btn btn-outline" id="mobileCancelUploadBtn">Cancel</button><button class="btn btn-primary" id="mobileConfirmUploadBtn">Add All to List</button></div>
       </div>
     </div>
   </div>
-  <!-- Mobile pending list -->
+
   <div class="card">
-    <div class="card-header"><span style="font-size:1.2rem;">📋</span> Pending Student Accounts (<span id="mobilePendingCount">0</span>)</div>
+    <div class="card-header"><span>📋</span> Pending Student Accounts (<span id="mobilePendingCount">0</span>)</div>
     <div class="card-body">
       <div id="mobilePendingList"></div>
-      <div class="summary-bar" style="margin-top:0.5rem;">
+      <div class="summary-bar">
         <span><strong>Total pending:</strong> <span id="mobileTotalPendingSpan">0</span> students</span>
         <button class="btn btn-primary" id="mobileSubmitAllBtn">Create All Accounts</button>
       </div>
     </div>
   </div>
-  <!-- Mobile history card -->
+
   <div class="card" id="mobileHistoryCard">
-    <div class="card-header"><span style="font-size:1.2rem;">📜</span> Generated Credentials History</div>
+    <div class="card-header"><span>📜</span> Generated Credentials History</div>
     <div class="card-body" id="mobileHistoryList"></div>
   </div>
-  <footer class="mobile-footer"><div class="mobile-footer-brand"><span class="logo-text" style="font-size:0.85rem;">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div><nav class="mobile-footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav></footer>
+
+  <footer class="mobile-footer">
+    <div><span class="logo-text">Scholar<span class="ch">ch</span></span> <span>PLV ITD · 2026</span></div>
+    <div class="mobile-footer-links"><a href="#">Privacy</a> <a href="#">Terms</a> <a href="#">Support</a></div>
+  </footer>
 </div>
 
-<!-- DESKTOP LAYOUT -->
 <div class="grid-container">
   <aside class="sidebar">
-    <a href="#" class="sidebar-logo">
+    <a href="./index.html" class="sidebar-logo">
       <svg viewBox="0 0 22 22" fill="none">
         <circle cx="9.5" cy="9.5" r="6.5" stroke="#436DE9" stroke-width="1.8" fill="none"/>
         <path d="M14.5 14.5L19 19" stroke="#FFA51F" stroke-width="2" stroke-linecap="round"/>
@@ -726,495 +101,89 @@
     </a>
     <nav class="sidebar-nav">
       <span class="nav-section-label">Overview</span>
-      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</a>
+      <a href="./faculty_dashboard.html" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</a>
       <span class="nav-section-label">Student Management</span>
-      <a href="#" class="nav-item is-active"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2"/></svg>Create Accounts</a>
+      <a href="./faculty_create.html" class="nav-item is-active"><svg viewBox="0 0 16 16" fill="none"><path d="M2 3h12v10H2z" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.2"/></svg>Create Accounts</a>
       <span class="nav-section-label">Research</span>
-      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor"/></svg>Browse Archive</a>
+      <a href="./archive.html" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor"/><line x1="11" y1="11" x2="15" y2="15" stroke="currentColor"/></svg>Browse Archive</a>
       <span class="nav-section-label">Account</span>
-      <a href="#" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor"/><path d="M2 14c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5" stroke="currentColor"/></svg>Profile</a>
+      <a href="./faculty_profile.html" class="nav-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor"/><path d="M2 14c0-3 2.7-4.5 6-4.5s6 1.5 6 4.5" stroke="currentColor"/></svg>Profile</a>
     </nav>
-    <div class="sidebar-footer">
-      <div class="avatar-circle">RM</div>
-      <div class="sidebar-user-info"><div class="sidebar-user-name">Prof. R. Mendoza</div><div class="sidebar-user-role">Faculty · BSIT</div></div>
-    </div>
+    <div class="sidebar-footer" id="authSection"></div>
   </aside>
 
   <div class="right-column">
     <header class="topbar">
       <div class="topbar-left"><span class="topbar-title">Faculty Dashboard</span><span class="topbar-sub">Pamantasan ng Lungsod ng Valenzuela · ITD</span></div>
-      <div class="topbar-right">
-        <svg viewBox="0 0 18 18" fill="none"><path d="M9 1.5A5.5 5.5 0 0 0 3.5 7v3.5L2 12h14l-1.5-1.5V7A5.5 5.5 0 0 0 9 1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M7 12.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-        <button class="avatar-btn">RM</button>
-      </div>
+      <div class="topbar-right" id="topbarAuth"></div>
     </header>
 
     <main class="main-content">
-      <div class="page-header" style="margin-bottom:1.5rem;">
-        <h1 style="font-size:1.5rem; font-weight:600;">Create Student Accounts</h1>
-        <p style="color:var(--clr-text-ghost); margin-top:0.25rem;">Add students manually or upload an Excel/CSV spreadsheet</p>
+      <div class="page-header">
+        <h1>Create Student Accounts</h1>
+        <p>Add students manually or upload an Excel/CSV spreadsheet</p>
       </div>
 
-      <!-- Manual Entry Card (desktop) -->
       <div class="card">
-        <div class="card-header"><span style="font-size:1.2rem;">📘</span> Manual Entry</div>
+        <div class="card-header"><span>📘</span> Manual Entry</div>
         <div class="card-body">
           <div class="form-grid">
-            <div class="field"><label>Student ID <span class="required">*</span> <span style="font-size:0.7rem;">(xx-xxxx)</span></label><input type="text" id="studentId" placeholder="23-1234"></div>
+            <div class="field"><label>Student ID <span class="required">*</span> <span class="field-hint">(xx-xxxx)</span></label><input type="text" id="studentId" placeholder="23-1234"></div>
             <div class="field"><label>First Name <span class="required">*</span></label><input type="text" id="firstName" placeholder="Juan"></div>
             <div class="field"><label>Last Name <span class="required">*</span></label><input type="text" id="lastName" placeholder="Dela Cruz"></div>
-            <div class="field"><label>Year & Section <span class="required">*</span> <span style="font-size:0.7rem;">(e.g., BSIT 2-11)</span></label><input type="text" id="yearSection" placeholder="BSIT 2-11"></div>
+            <div class="field"><label>Year & Section <span class="required">*</span> <span class="field-hint">(e.g., BSIT 2-11)</span></label><input type="text" id="yearSection" placeholder="BSIT 2-11"></div>
             <div class="field"><label>Email <span class="required">*</span></label><input type="email" id="email" placeholder="student@plv.edu.ph"></div>
             <div class="field"><label>Contact <span class="required">*</span></label><input type="tel" id="contact" placeholder="09123456789"></div>
           </div>
-          <div style="display:flex; justify-content:flex-end;"><button class="btn btn-primary" id="addManualBtn">+ Add to List</button></div>
+          <div class="btn-container"><button class="btn btn-primary" id="addManualBtn">+ Add to List</button></div>
         </div>
       </div>
 
-      <!-- Bulk Upload Card (desktop) -->
       <div class="card">
-        <div class="card-header"><span style="font-size:1.2rem;">📂</span> Bulk Upload (Excel / CSV)</div>
+        <div class="card-header"><span>📂</span> Bulk Upload (Excel / CSV)</div>
         <div class="card-body">
           <div class="upload-zone" id="uploadZone">
             <svg class="upload-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             <p>Click or drag & drop an Excel (.xlsx, .xls) or CSV file</p>
-            <p style="font-size: 0.75rem; color: var(--clr-text-ghost); margin-top: 0.5rem;">Expected columns: studentID, firstName, lastName, yearSection, email, contact</p>
-            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" style="display: none;">
+            <p class="upload-hint">Expected columns: studentID, firstName, lastName, yearSection, email, contact</p>
+            <input type="file" id="fileInput" accept=".xlsx, .xls, .csv">
           </div>
           <div id="previewContainer" style="display: none;">
-            <h4 style="margin-bottom: 0.75rem;">Preview (first 5 rows)</h4>
-            <div style="overflow-x: auto;"><table class="data-table" id="previewTable"><thead><tr><th>Student ID</th><th>First Name</th><th>Last Name</th><th>Year & Section</th><th>Email</th><th>Contact</th></tr></thead><tbody id="previewBody"></tbody></table></div>
-            <div style="margin-top: 1rem; display: flex; gap: 0.75rem; justify-content: flex-end;"><button class="btn btn-outline" id="cancelUploadBtn">Cancel</button><button class="btn btn-primary" id="confirmUploadBtn">Add All to List</button></div>
+            <h4>Preview (first 5 rows)</h4>
+            <div class="table-wrapper"><table class="data-table" id="previewTable"><thead><tr><th>Student ID</th><th>First Name</th><th>Last Name</th><th>Year & Section</th><th>Email</th><th>Contact</th></tr></thead><tbody id="previewBody"></tbody></table></div>
+            <div class="preview-actions"><button class="btn btn-outline" id="cancelUploadBtn">Cancel</button><button class="btn btn-primary" id="confirmUploadBtn">Add All to List</button></div>
           </div>
         </div>
       </div>
 
-      <!-- Pending Accounts List (desktop) -->
       <div class="card">
-        <div class="card-header"><span style="font-size:1.2rem;">📋</span> Pending Student Accounts (<span id="pendingCount">0</span>)</div>
+        <div class="card-header"><span>📋</span> Pending Student Accounts (<span id="pendingCount">0</span>)</div>
         <div class="card-body">
-          <div style="overflow-x: auto;"><table class="data-table" id="pendingTable"><thead><tr><th>Student ID</th><th>First Name</th><th>Last Name</th><th>Year & Section</th><th>Email</th><th>Contact</th><th style="width:60px;"></th></tr></thead><tbody id="pendingBody"><tr class="empty-row"><td colspan="7">No pending accounts. Add manually or upload a file.</td></tbody></table></div>
+          <div class="table-wrapper"><table class="data-table" id="pendingTable"><thead><tr><th>Student ID</th><th>First Name</th><th>Last Name</th><th>Year & Section</th><th>Email</th><th>Contact</th><th></th></tr></thead><tbody id="pendingBody"><tr class="empty-row"><td colspan="7">No pending accounts. Add manually or upload a file.</td></tr></tbody></table></div>
           <div class="summary-bar"><span><strong>Total pending:</strong> <span id="totalPendingSpan">0</span> students</span><button class="btn btn-primary" id="submitAllBtn">Create All Accounts</button></div>
         </div>
       </div>
 
-      <!-- Credentials History Card (always visible) -->
       <div class="card">
-        <div class="card-header"><span style="font-size:1.2rem;">📜</span> Generated Credentials History</div>
-        <div class="card-body" id="historyListContainer">
-          <!-- Dynamic list will be injected here -->
-        </div>
+        <div class="card-header"><span>📜</span> Generated Credentials History</div>
+        <div class="card-body" id="historyListContainer"></div>
       </div>
     </main>
   </div>
 </div>
 
 <footer class="site-footer">
-  <div class="footer-brand"><span class="logo-text" style="font-size:0.875rem;">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div>
+  <div class="footer-brand"><span class="logo-text">Scholar<span class="ch">ch</span></span><span>PLV ITD · 2026</span></div>
   <nav class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></nav>
 </footer>
 
-<!-- Shared Success Modal -->
 <div class="modal-overlay" id="actionModal">
   <div class="status-modal">
     <div id="modalLoading"><div class="spinner"></div><p>Creating accounts, please wait...</p></div>
-    <div id="modalSuccess" style="display:none;"><div class="success-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="modal-success-title">Accounts Created!</div><div class="modal-success-message" id="successMessage"></div><button class="btn btn-primary" id="modalCloseBtn" style="min-width:7rem;">Close</button></div>
+    <div id="modalSuccess" style="display:none;"><div class="success-checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="modal-success-title">Accounts Created!</div><div class="modal-success-message" id="successMessage"></div><button class="btn btn-primary" id="modalCloseBtn">Close</button></div>
   </div>
 </div>
 
-<script>
-  // ---------- Shared data & helpers ----------
-  let pendingStudents = [];
-  let credentialHistory = []; // each entry: { id, timestamp, sectionName, credentialsData }
-
-  function isValidStudent(s) {
-    const idPattern = /^\d{2}-\d{4}$/;
-    const yearSecPattern = /^[A-Za-z]+ \d+-\d+$/;
-    if (!idPattern.test(s.studentId)) return false;
-    if (!yearSecPattern.test(s.yearSection)) return false;
-    if (!s.firstName || !s.lastName || !s.email || !s.contact) return false;
-    if (!/^\S+@\S+\.\S+$/.test(s.email)) return false;
-    if (!/^\d{7,15}$/.test(s.contact.replace(/\D/g, ''))) return false;
-    return true;
-  }
-  function isDuplicate(id) { return pendingStudents.some(s => s.studentId === id); }
-
-  function addStudents(studentsArray) {
-    let added=0, dup=0, inv=0;
-    for(let s of studentsArray){
-      if(!isValidStudent(s)){inv++; continue;}
-      if(isDuplicate(s.studentId)){dup++; continue;}
-      pendingStudents.push({...s}); added++;
-    }
-    renderAll();
-    if(inv||dup){
-      let msg=[];
-      if(inv) msg.push(`${inv} invalid`);
-      if(dup) msg.push(`${dup} duplicates`);
-      showToast(msg.join(', '),'warning');
-    } else if(added) showToast(`Added ${added} student(s).`,'success');
-    return added;
-  }
-  function removeStudent(idx){ pendingStudents.splice(idx,1); renderAll(); showToast('Removed.','info'); }
-
-  function renderAll(){
-    // desktop table
-    const tbody=document.getElementById('pendingBody');
-    const pcSpan=document.getElementById('pendingCount');
-    const totalSpan=document.getElementById('totalPendingSpan');
-    pcSpan.innerText=pendingStudents.length;
-    totalSpan.innerText=pendingStudents.length;
-    if(pendingStudents.length===0) tbody.innerHTML='<tr class="empty-row"><td colspan="7">No pending accounts. Add manually or upload a file.</td>';
-    else{
-      tbody.innerHTML='';
-      pendingStudents.forEach((s,idx)=>{
-        const r=tbody.insertRow();
-        r.insertCell(0).innerText=s.studentId;
-        r.insertCell(1).innerText=s.firstName;
-        r.insertCell(2).innerText=s.lastName;
-        r.insertCell(3).innerText=s.yearSection;
-        r.insertCell(4).innerText=s.email;
-        r.insertCell(5).innerText=s.contact;
-        const actionCell=r.insertCell(6);
-        const del=document.createElement('button');
-        del.className='action-btn'; del.innerHTML='🗑️'; del.onclick=()=>removeStudent(idx);
-        actionCell.appendChild(del);
-      });
-    }
-    // mobile pending list
-    const mobileList=document.getElementById('mobilePendingList');
-    const mobileCountSpan=document.getElementById('mobilePendingCount');
-    const mobileTotalSpan=document.getElementById('mobileTotalPendingSpan');
-    if(mobileCountSpan) mobileCountSpan.innerText=pendingStudents.length;
-    if(mobileTotalSpan) mobileTotalSpan.innerText=pendingStudents.length;
-    if(mobileList){
-      mobileList.innerHTML='';
-      if(pendingStudents.length===0) mobileList.innerHTML='<div class="mobile-card">No pending accounts.</div>';
-      else{
-        const heading=document.createElement('h3'); heading.textContent='Pending Accounts'; heading.style.marginBottom='0.5rem';
-        mobileList.appendChild(heading);
-        pendingStudents.forEach((s,idx)=>{
-          const card=document.createElement('div'); card.className='mobile-card';
-          card.innerHTML=`<div><strong>${escapeHtml(s.studentId)}</strong> - ${escapeHtml(s.firstName)} ${escapeHtml(s.lastName)}</div>
-                          <div style="font-size:0.8rem;">${escapeHtml(s.yearSection)} | ${escapeHtml(s.email)} | ${escapeHtml(s.contact)}</div>
-                          <button class="btn btn-outline" style="margin-top:0.5rem; padding:0.2rem 0.8rem;" onclick="removeStudent(${idx})">Remove</button>`;
-          mobileList.appendChild(card);
-        });
-      }
-    }
-    renderHistoryList(); // refresh history display
-  }
-
-  function generateCredentials(students) {
-    return students.map(s => {
-      const idParts = s.studentId.split('-');
-      const last4 = idParts.length > 1 ? idParts[1] : s.studentId.slice(-4);
-      const firstInitial = s.firstName.charAt(0).toLowerCase();
-      const lastNameClean = s.lastName.toLowerCase().replace(/\s/g, '');
-      const username = `${firstInitial}.${lastNameClean}${last4}`;
-      const password = `${lastNameClean}${last4}`;
-      return {
-        studentId: s.studentId,
-        firstName: s.firstName,
-        lastName: s.lastName,
-        yearSection: s.yearSection,
-        email: s.email,
-        username: username,
-        password: password
-      };
-    });
-  }
-
-  function renderHistoryList() {
-    const container = document.getElementById('historyListContainer');
-    const mobileContainer = document.getElementById('mobileHistoryList');
-    if (!container) return;
-    if (credentialHistory.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state-history">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <rect x="2" y="4" width="20" height="16" rx="2" />
-            <line x1="8" y1="10" x2="16" y2="10" />
-            <line x1="8" y1="14" x2="12" y2="14" />
-          </svg>
-          <p>No credentials generated yet.</p>
-          <p style="font-size:0.75rem;">Create accounts to generate login credentials.</p>
-        </div>
-      `;
-      if (mobileContainer) mobileContainer.innerHTML = container.innerHTML;
-      return;
-    }
-    let html = '<ul class="history-list">';
-    credentialHistory.forEach(entry => {
-      const displayName = `${entry.sectionName} - ${entry.timestamp}`;
-      html += `
-        <li class="history-item" data-id="${entry.id}">
-          <div class="history-info">
-            <div class="history-filename">${escapeHtml(displayName)}</div>
-            <div class="history-timestamp">${entry.timestamp}</div>
-          </div>
-          <div class="history-actions">
-            <button class="btn btn-outline history-csv" data-id="${entry.id}" style="padding:0.3rem 0.8rem;">CSV</button>
-            <button class="btn btn-outline history-excel" data-id="${entry.id}" style="padding:0.3rem 0.8rem;">Excel</button>
-            <button class="btn-icon-danger history-delete" data-id="${entry.id}" title="Delete"><svg width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
-          </div>
-        </li>
-      `;
-    });
-    html += '</ul>';
-    container.innerHTML = html;
-    if (mobileContainer) mobileContainer.innerHTML = html;
-
-    // attach event listeners
-    container.querySelectorAll('.history-csv').forEach(btn => {
-      btn.removeEventListener('click', csvHandler);
-      btn.addEventListener('click', csvHandler);
-    });
-    container.querySelectorAll('.history-excel').forEach(btn => {
-      btn.removeEventListener('click', excelHandler);
-      btn.addEventListener('click', excelHandler);
-    });
-    container.querySelectorAll('.history-delete').forEach(btn => {
-      btn.removeEventListener('click', deleteHandler);
-      btn.addEventListener('click', deleteHandler);
-    });
-    if (mobileContainer) {
-      mobileContainer.querySelectorAll('.history-csv').forEach(btn => {
-        btn.removeEventListener('click', csvHandler);
-        btn.addEventListener('click', csvHandler);
-      });
-      mobileContainer.querySelectorAll('.history-excel').forEach(btn => {
-        btn.removeEventListener('click', excelHandler);
-        btn.addEventListener('click', excelHandler);
-      });
-      mobileContainer.querySelectorAll('.history-delete').forEach(btn => {
-        btn.removeEventListener('click', deleteHandler);
-        btn.addEventListener('click', deleteHandler);
-      });
-    }
-
-    function csvHandler(e) {
-      const id = parseInt(e.currentTarget.getAttribute('data-id'));
-      const entry = credentialHistory.find(e => e.id === id);
-      if (entry) downloadCSV(entry.credentialsData, entry.sectionName.replace(/\s+/g, '_') + '_' + entry.timestamp.replace(/[,\s:]/g, '_'));
-    }
-    function excelHandler(e) {
-      const id = parseInt(e.currentTarget.getAttribute('data-id'));
-      const entry = credentialHistory.find(e => e.id === id);
-      if (entry) downloadExcel(entry.credentialsData, entry.sectionName.replace(/\s+/g, '_') + '_' + entry.timestamp.replace(/[,\s:]/g, '_'));
-    }
-    function deleteHandler(e) {
-      const id = parseInt(e.currentTarget.getAttribute('data-id'));
-      credentialHistory = credentialHistory.filter(e => e.id !== id);
-      renderHistoryList();
-      showToast('History entry removed.', 'info');
-    }
-  }
-
-  function downloadCSV(credentials, baseName) {
-    const headers = ['Student ID', 'First Name', 'Last Name', 'Year & Section', 'Email', 'Username', 'Password'];
-    const rows = credentials.map(c => [c.studentId, c.firstName, c.lastName, c.yearSection, c.email, c.username, c.password]);
-    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', `${baseName}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }
-
-  function downloadExcel(credentials, baseName) {
-    const wsData = [
-      ['Student ID', 'First Name', 'Last Name', 'Year & Section', 'Email', 'Username', 'Password'],
-      ...credentials.map(c => [c.studentId, c.firstName, c.lastName, c.yearSection, c.email, c.username, c.password])
-    ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Credentials');
-    XLSX.writeFile(wb, `${baseName}.xlsx`);
-  }
-
-  function addToHistory(students) {
-    if (!students.length) return;
-    const creds = generateCredentials(students);
-    const sectionName = students[0].yearSection;
-    const now = new Date();
-    const timestamp = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-    const id = Date.now();
-    credentialHistory.unshift({ id, timestamp, sectionName, credentialsData: creds });
-    renderHistoryList();
-  }
-
-  function escapeHtml(str){ return String(str).replace(/[&<>]/g,function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
-  function showToast(msg,type='info'){
-    const toast=document.createElement('div');
-    toast.innerText=msg;
-    toast.style.position='fixed'; toast.style.bottom='20px'; toast.style.right='20px';
-    toast.style.backgroundColor=type==='success'?'#16a34a':(type==='error'?'#dc2626':'#436DE9');
-    toast.style.color='white'; toast.style.padding='0.75rem 1.25rem';
-    toast.style.borderRadius='var(--radius-full)'; toast.style.fontSize='0.875rem';
-    toast.style.zIndex='9999'; toast.style.boxShadow='var(--shadow-md)';
-    document.body.appendChild(toast);
-    setTimeout(()=>toast.remove(),3000);
-  }
-
-  // Desktop manual add
-  document.getElementById('addManualBtn').addEventListener('click',()=>{
-    const student={
-      studentId:document.getElementById('studentId').value.trim(),
-      firstName:document.getElementById('firstName').value.trim(),
-      lastName:document.getElementById('lastName').value.trim(),
-      yearSection:document.getElementById('yearSection').value.trim(),
-      email:document.getElementById('email').value.trim(),
-      contact:document.getElementById('contact').value.trim()
-    };
-    if(!isValidStudent(student)){ showToast('Check format (xx-xxxx, BSIT 2-11, email, contact).','error'); return; }
-    if(isDuplicate(student.studentId)){ showToast(`Duplicate ID ${student.studentId}`,'error'); return; }
-    pendingStudents.push(student); renderAll();
-    document.getElementById('studentId').value=''; document.getElementById('firstName').value='';
-    document.getElementById('lastName').value=''; document.getElementById('yearSection').value='';
-    document.getElementById('email').value=''; document.getElementById('contact').value='';
-    showToast('Student added.','success');
-  });
-
-  // Desktop bulk upload (SheetJS)
-  const fileInput=document.getElementById('fileInput'), uploadZone=document.getElementById('uploadZone');
-  const previewContainer=document.getElementById('previewContainer'), previewBody=document.getElementById('previewBody');
-  let parsedRows=[];
-  function handleFile(file,isMobile=false){
-    const ext=file.name.split('.').pop().toLowerCase();
-    if(!['xlsx','xls','csv'].includes(ext)){ showToast('Upload Excel/CSV.','error'); return; }
-    const reader=new FileReader();
-    reader.onload=function(e){
-      const data=new Uint8Array(e.target.result);
-      let workbook; if(ext==='csv') workbook=XLSX.read(new TextDecoder().decode(data),{type:'string'});
-      else workbook=XLSX.read(data,{type:'array'});
-      const sheet=workbook.Sheets[workbook.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:""});
-      if(!rows||rows.length<2){ showToast('File empty.','error'); return; }
-      const headers=rows[0];
-      const colMap={};
-      headers.forEach((h,idx)=>{
-        const key=String(h).toLowerCase().replace(/\s/g,'');
-        if(key.includes('studentid')) colMap.studentId=idx;
-        else if(key.includes('firstname')) colMap.firstName=idx;
-        else if(key.includes('lastname')) colMap.lastName=idx;
-        else if(key.includes('year')||key.includes('section')) colMap.yearSection=idx;
-        else if(key.includes('email')) colMap.email=idx;
-        else if(key.includes('contact')||key.includes('phone')) colMap.contact=idx;
-      });
-      if(!colMap.studentId||!colMap.firstName||!colMap.lastName||!colMap.yearSection||!colMap.email||!colMap.contact){ showToast('Missing columns.','error'); return; }
-      parsedRows=[];
-      for(let i=1;i<rows.length;i++){
-        const row=rows[i]; if(!row||row.length===0) continue;
-        const student={
-          studentId:row[colMap.studentId]?String(row[colMap.studentId]).trim():'',
-          firstName:row[colMap.firstName]?String(row[colMap.firstName]).trim():'',
-          lastName:row[colMap.lastName]?String(row[colMap.lastName]).trim():'',
-          yearSection:row[colMap.yearSection]?String(row[colMap.yearSection]).trim():'',
-          email:row[colMap.email]?String(row[colMap.email]).trim():'',
-          contact:row[colMap.contact]?String(row[colMap.contact]).trim():''
-        };
-        if(student.studentId&&student.firstName&&student.lastName) parsedRows.push(student);
-      }
-      if(parsedRows.length===0){ showToast('No valid rows.','error'); return; }
-      if(isMobile){
-        const mobilePreviewBody=document.getElementById('mobilePreviewBody');
-        mobilePreviewBody.innerHTML='';
-        parsedRows.slice(0,5).forEach(s=>{const r=mobilePreviewBody.insertRow(); r.insertCell(0).innerText=s.studentId; r.insertCell(1).innerText=s.firstName; r.insertCell(2).innerText=s.lastName; r.insertCell(3).innerText=s.yearSection; r.insertCell(4).innerText=s.email; r.insertCell(5).innerText=s.contact;});
-        if(parsedRows.length>5){const info=mobilePreviewBody.insertRow(); info.insertCell(0).colSpan=6; info.cells[0].innerText=`... and ${parsedRows.length-5} more`;}
-        document.getElementById('mobilePreviewContainer').style.display='block';
-        document.getElementById('mobileUploadZone').style.display='none';
-      } else {
-        previewBody.innerHTML='';
-        parsedRows.slice(0,5).forEach(s=>{const r=previewBody.insertRow(); r.insertCell(0).innerText=s.studentId; r.insertCell(1).innerText=s.firstName; r.insertCell(2).innerText=s.lastName; r.insertCell(3).innerText=s.yearSection; r.insertCell(4).innerText=s.email; r.insertCell(5).innerText=s.contact;});
-        if(parsedRows.length>5){const info=previewBody.insertRow(); info.insertCell(0).colSpan=6; info.cells[0].innerText=`... and ${parsedRows.length-5} more`;}
-        previewContainer.style.display='block';
-        uploadZone.style.display='none';
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-  uploadZone.addEventListener('click',()=>fileInput.click());
-  uploadZone.addEventListener('dragover',e=>{e.preventDefault(); uploadZone.style.borderColor='var(--clr-brand)';});
-  uploadZone.addEventListener('dragleave',()=>uploadZone.style.borderColor='var(--clr-border)');
-  uploadZone.addEventListener('drop',e=>{e.preventDefault(); uploadZone.style.borderColor='var(--clr-border)'; if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0],false);});
-  fileInput.addEventListener('change',e=>{if(e.target.files.length) handleFile(e.target.files[0],false);});
-  document.getElementById('cancelUploadBtn').addEventListener('click',()=>{previewContainer.style.display='none'; uploadZone.style.display='block'; fileInput.value=''; parsedRows=[];});
-  document.getElementById('confirmUploadBtn').addEventListener('click',()=>{if(parsedRows.length) addStudents(parsedRows); previewContainer.style.display='none'; uploadZone.style.display='block'; fileInput.value=''; parsedRows=[];});
-
-  // Mobile bulk upload
-  const mobileFileInput=document.getElementById('mobileFileInput'), mobileUploadZone=document.getElementById('mobileUploadZone');
-  mobileUploadZone.addEventListener('click',()=>mobileFileInput.click());
-  mobileUploadZone.addEventListener('dragover',e=>{e.preventDefault(); mobileUploadZone.style.borderColor='var(--clr-brand)';});
-  mobileUploadZone.addEventListener('dragleave',()=>mobileUploadZone.style.borderColor='var(--clr-border)');
-  mobileUploadZone.addEventListener('drop',e=>{e.preventDefault(); mobileUploadZone.style.borderColor='var(--clr-border)'; if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0],true);});
-  mobileFileInput.addEventListener('change',e=>{if(e.target.files.length) handleFile(e.target.files[0],true);});
-  document.getElementById('mobileCancelUploadBtn').addEventListener('click',()=>{document.getElementById('mobilePreviewContainer').style.display='none'; mobileUploadZone.style.display='block'; mobileFileInput.value=''; parsedRows=[];});
-  document.getElementById('mobileConfirmUploadBtn').addEventListener('click',()=>{if(parsedRows.length) addStudents(parsedRows); document.getElementById('mobilePreviewContainer').style.display='none'; mobileUploadZone.style.display='block'; mobileFileInput.value=''; parsedRows=[];});
-
-  // Mobile manual add
-  document.getElementById('mobileAddManualBtn').addEventListener('click',()=>{
-    const student={
-      studentId:document.getElementById('mobileStudentId').value.trim(),
-      firstName:document.getElementById('mobileFirstName').value.trim(),
-      lastName:document.getElementById('mobileLastName').value.trim(),
-      yearSection:document.getElementById('mobileYearSection').value.trim(),
-      email:document.getElementById('mobileEmail').value.trim(),
-      contact:document.getElementById('mobileContact').value.trim()
-    };
-    if(!isValidStudent(student)){ showToast('Check format.','error'); return; }
-    if(isDuplicate(student.studentId)){ showToast(`Duplicate ID ${student.studentId}`,'error'); return; }
-    pendingStudents.push(student); renderAll();
-    document.getElementById('mobileStudentId').value=''; document.getElementById('mobileFirstName').value='';
-    document.getElementById('mobileLastName').value=''; document.getElementById('mobileYearSection').value='';
-    document.getElementById('mobileEmail').value=''; document.getElementById('mobileContact').value='';
-    showToast('Student added.','success');
-  });
-
-  // Create all accounts (with modal and history addition)
-  const modalOverlay=document.getElementById('actionModal');
-  const modalLoading=document.getElementById('modalLoading');
-  const modalSuccessDiv=document.getElementById('modalSuccess');
-  const successMsgSpan=document.getElementById('successMessage');
-  const modalCloseBtn=document.getElementById('modalCloseBtn');
-  function showLoadingModal(){ modalLoading.style.display='block'; modalSuccessDiv.style.display='none'; modalOverlay.classList.add('is-open');}
-  function showSuccessModal(msg){ modalLoading.style.display='none'; modalSuccessDiv.style.display='block'; successMsgSpan.innerText=msg;}
-  function closeModal(){ modalOverlay.classList.remove('is-open');}
-  modalCloseBtn.addEventListener('click',closeModal);
-  modalOverlay.addEventListener('click',e=>{if(e.target===modalOverlay) closeModal();});
-  
-  function createAllAccounts(){
-    if(pendingStudents.length===0){ showToast('No pending accounts.','error'); return; }
-    const studentsToCreate = [...pendingStudents];
-    showLoadingModal();
-    setTimeout(()=>{
-      const count = studentsToCreate.length;
-      showSuccessModal(`Successfully created ${count} student account(s). Login credentials have been generated.`);
-      // Add to history
-      addToHistory(studentsToCreate);
-      // Clear pending list
-      pendingStudents = [];
-      renderAll();
-    },1500);
-  }
-  document.getElementById('submitAllBtn').addEventListener('click',createAllAccounts);
-  document.getElementById('mobileSubmitAllBtn').addEventListener('click',createAllAccounts);
-
-  // Mobile hamburger
-  const hamburger=document.getElementById('hamburgerBtn');
-  const mobileNav=document.getElementById('mobileNav');
-  if(hamburger&&mobileNav){
-    hamburger.addEventListener('click',()=>{
-      const isOpen=mobileNav.classList.contains('is-open');
-      if(!isOpen){ mobileNav.style.display='flex'; setTimeout(()=>mobileNav.classList.add('is-open'),10); document.body.style.overflow='hidden'; }
-      else{ mobileNav.classList.remove('is-open'); document.body.style.overflow=''; mobileNav.addEventListener('transitionend',()=>{if(!mobileNav.classList.contains('is-open')) mobileNav.style.display='none';},{once:true}); }
-    });
-  }
-  renderAll();
-</script>
+<script src="../js/faculty_create.js"></script>
 </body>
 </html>

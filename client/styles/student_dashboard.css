@@ -1282,7 +1282,7 @@ ol {
 .modal-title {
     font-size: 1.125rem;
     font-weight: 600;
-    color: var(--clr-text);
+    color: var(--clr-brand);
     letter-spacing: -0.03em;
 }
 .btn-close {
@@ -1385,7 +1385,7 @@ ol {
     font-weight: 500;
 }
 .modal-body {
-    padding: 0 1.5rem;
+    padding: 1rem 1.5rem;
     overflow-y: auto;
     flex: 1;
 }
@@ -1736,7 +1736,7 @@ ol {
     word-break: break-word;
 }
 .modal-footer {
-    padding: 1rem 1.5rem 1.25rem;
+    padding: 0.9rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2021,4 +2021,93 @@ ol {
 .empty-state p {
     color: var(--clr-text-muted);
     margin-bottom: 0.5rem;
+}
+
+#abstract {
+    width: 100%;
+    border-radius: var(--radius-md);
+    padding: 0.7rem;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    border: 1px solid var(--clr-border);
+}
+
+/* Style member dropdown to match input fields */
+.member-select {
+  width: 100%;
+  padding: 0.5625rem 0.75rem;
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--clr-text);
+  background: var(--clr-surface);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), box-shadow var(--ease-fast);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.member-select:focus {
+  outline: none;
+  border-color: var(--clr-brand);
+  box-shadow: 0 0 0 3px rgba(67,109,233,0.1);
+}
+
+.member-select:disabled {
+  background: #f5f5f5;
+  color: var(--clr-text-ghost);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Ensure member row layout is consistent */
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.member-row .member-index {
+  width: 1.5rem;
+  text-align: center;
+  font-weight: 500;
+  color: var(--clr-text-ghost);
+}
+
+.btn-remove-member {
+  background: none;
+  border: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--clr-text-ghost);
+  cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+}
+
+.btn-remove-member:hover:not(:disabled) {
+  background: var(--clr-error-bg);
+  color: var(--clr-error);
+}
+
+.btn-remove-member:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.resubmit-btn {
+    display: none;
+    background-color: var(--clr-brand);
+    color: #fff;
+    font-size: 0.8rem;
+    border-radius: var(--radius-full);
+    padding: 0.5rem 2rem;
+    cursor: pointer;
 }

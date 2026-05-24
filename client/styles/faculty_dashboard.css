@@ -781,6 +781,66 @@ ul, ol { list-style: none; }
     font-style: italic;
 }
 
+/* Login button styles */
+.login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--clr-brand);
+  color: white;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  transition: all var(--ease-fast);
+  text-decoration: none;
+  width: 100%;
+  text-align: center;
+}
+.login-btn:hover {
+  background: var(--clr-brand-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+.topbar-login-btn {
+  background: var(--clr-brand);
+  color: white;
+  padding: 0.3rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background var(--ease-fast);
+}
+.topbar-login-btn:hover {
+  background: var(--clr-brand-dark);
+}
+.mobile-nav-auth .btn-nav-auth {
+  background: var(--clr-brand);
+  color: white;
+  border: none;
+}
+.mobile-nav-auth .btn-nav-auth:hover {
+  background: var(--clr-brand-dark);
+}
+.btn-add-feedback {
+  background: var(--clr-brand-faint);
+  color: var(--clr-brand);
+}
+.btn-view-history {
+  background: var(--clr-bg);
+  color: var(--clr-brand);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-full);
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+.btn-view-history:hover {
+  background: var(--clr-brand-dim);
+}
+
 /* ============================================================
     RESPONSIVE
     ============================================================ */

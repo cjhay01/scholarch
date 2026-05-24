@@ -11,7 +11,6 @@ function checkLoginStatus() {
     userMenu.style.display = 'flex';
     userMenu.style.alignItems = 'center';
     document.getElementById('userName').textContent = `Welcome, ${user.name.split(' ')[0]}`;
-    document.getElementById('dashboardLink').href = `/${user.role}_dashboard.html`;
     document.getElementById('logoutBtn').onclick = (e) => {
         e.preventDefault();
         localStorage.removeItem('token');
