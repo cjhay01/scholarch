@@ -12,11 +12,23 @@ connectDB();
 const app = express();
 
 const path = require('path');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
+// This must be BEFORE any other routes/middleware
+app.use('/cms-portfolio', createProxyMiddleware({
+    target: 'http://127.0.0.1:80',
+    changeOrigin: false,
+    pathRewrite: { '^/cms-portfolio': '/cms-portfolio' },
+    headers: {
+        Host: 'scholarch.site'
+    }
+}));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 
 app.use('/api/auth', require('./routes/auth.js'));
 app.use('/api/users', require('./routes/user.js'));
