@@ -417,7 +417,7 @@ async function renderAuthUI() {
     if (mobileAvatar) mobileAvatar.textContent = initial;
   } else {
     if (authSection) {
-      authSection.innerHTML = '<a href="./login_page.html" class="login-btn">🔐 Log in as Faculty</a>';
+      authSection.innerHTML = '<a href="./login_page.html" class="login-btn">Log in</a>';
     }
     if (topbarAuth) {
       topbarAuth.innerHTML = '<a href="./login_page.html" class="topbar-login-btn">Log in</a>';

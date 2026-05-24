@@ -154,13 +154,14 @@ function renderUserLists() {
 }
 
 function userCardHTML(user, role) {
-  const name = user.name || 'Unknown';
+  const firstName = user.first_name || 'Unknown';
+  const lastName = user.last_name || 'Unknown';
   const badge = role === 'faculty' ? 'Faculty' : 'Student';
   return `
     <div class="user-list-item" data-id="${user._id}" data-role="${role}" data-section="${escapeHtml(user.year_and_section || '')}">
       <div class="user-info">
         <div class="user-name-line">
-          <span class="user-fullname">${escapeHtml(name)}</span>
+          <span class="user-fullname">${escapeHtml(firstName)} ${escapeHtml(lastName)}</span>
           <span class="user-badge">${badge}</span>
         </div>
         <div class="user-details">
@@ -206,7 +207,8 @@ function openEditModal(userId, role) {
   if (!user) return;
 
   document.getElementById('editUserId').value = user.user_id;
-  document.getElementById('editName').value = user.name || '';
+  document.getElementById('editFirstName').value = user.first_name || '';
+  document.getElementById('editLastName').value = user.last_name || '';
   document.getElementById('editEmail').value = user.email || '';
   document.getElementById('editContact').value = user.contact || '';
   document.getElementById('editPassword').value = '';
@@ -215,17 +217,18 @@ function openEditModal(userId, role) {
 }
 
 async function saveEdit() {
-  const name = document.getElementById('editName').value.trim();
+  const firstName = document.getElementById('editFirstName').value.trim();
+  const lastName = document.getElementById('editLastName').value.trim();
   const email = document.getElementById('editEmail').value.trim();
   const contact = document.getElementById('editContact').value.trim();
   const password = document.getElementById('editPassword').value.trim();
 
-  if (!name || !email || !contact) {
+  if (!firstName || !lastName || !email || !contact) {
     showToast('Please fill all required fields.', 'error');
     return;
   }
 
-  const body = { name, email, contact };
+  const body = { first_name: firstName, last_name: lastName, email, contact };
   if (password) body.password = password;
 
   const token = getToken();

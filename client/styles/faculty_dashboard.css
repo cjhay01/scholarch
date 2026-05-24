@@ -389,7 +389,7 @@ ul, ol { list-style: none; }
 .empty-state .empty-heading { font-size: 0.9375rem; font-weight: 500; color: var(--clr-text-muted); font-family: var(--font-sans); }
 
 /* Footer */
-.site-footer { padding: 1rem; border-top: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: var(--clr-surface); height: 6vh; }
+.site-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--clr-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; background: var(--clr-surface); height: 6vh; }
 .footer-brand { display: flex; align-items: center; gap: 0.75rem; font-family: var(--font-body); font-size: 0.8125rem; color: var(--clr-text-faint); }
 .footer-links { display: flex; gap: 1.5rem; }
 .footer-links a { font-family: var(--font-body); font-size: 0.8125rem; color: var(--clr-text-faint); transition: color var(--ease-fast); }
@@ -862,4 +862,19 @@ ul, ol { list-style: none; }
     .modal { max-height: 95vh; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
     .modal-footer { flex-direction: column; }
     .modal-footer .btn { width: 100%; text-align: center; justify-content: center; }
+}
+
+/* 1. Unify footer font size with other secondary text */
+.site-footer .footer-brand,
+.site-footer .footer-links a {
+    font-size: 0.75rem;   /* was 0.8125rem – now matches topbar-sub, etc. */
+}
+
+/* 2. Align footer horizontal padding with main content */
+.site-footer {
+    padding: 1rem 1.75rem;   /* was 1rem 1.5rem – now matches .main */
+}
+
+.site-footer {
+    padding: 0.875rem 1.75rem;  /* slightly tighter, matches sidebar-footer */
 }

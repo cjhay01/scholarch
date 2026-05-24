@@ -1,8 +1,9 @@
-// faculty_profile.js 
+// faculty_profile.js – first_name / last_name split
 
 let currentUser = null;
 let profileData = {
-  name: '',
+  firstName: '',
+  lastName: '',
   email: '',
   contact: '',
   department: '',
@@ -12,7 +13,6 @@ let profileData = {
 
 let passwordModal, confirmModal;
 
-
 function clearAuthAndRedirect() {
   localStorage.removeItem('token');
   sessionStorage.removeItem('token');
@@ -21,7 +21,7 @@ function clearAuthAndRedirect() {
   window.location.href = './index.html';
 }
 
-// ---------- Load profile from backend (or fallback to localStorage) ----------
+// ---------- Load profile from backend ----------
 async function loadProfileData() {
   const token = getToken();
   if (!token) return;
@@ -35,28 +35,26 @@ async function loadProfileData() {
       throw new Error('Failed to load profile');
     }
     const user = await response.json();
-    // Update currentUser and localStorage with fresh data
     currentUser = user;
     localStorage.setItem('user', JSON.stringify(user));
-    // Populate profileData from API response
     profileData = {
-      name: user.name || '',
+      firstName: user.first_name || '',
+      lastName: user.last_name || '',
       email: user.email || '',
       contact: user.contact || '',
       department: user.department || 'CEIT',
       facultyId: user.user_id || '',
       bio: user.bio || ''
     };
-    // Re-render auth UI to update sidebar/topbar with new name/initials
     renderAuthUI();
   } catch (err) {
     console.error('Profile fetch error:', err);
-    // Fallback to localStorage user
     const localUser = getUser();
     if (localUser) {
       currentUser = localUser;
       profileData = {
-        name: localUser.name || '',
+        firstName: localUser.first_name || '',
+        lastName: localUser.last_name || '',
         email: localUser.email || '',
         contact: localUser.contact || '',
         department: localUser.department || 'CEIT',
@@ -74,31 +72,32 @@ async function loadProfileData() {
 
 function updateProfileUI() {
   // Desktop
-  document.getElementById('displayName').innerText = profileData.name;
+  document.getElementById('displayFirstName').innerText = profileData.firstName;
+  document.getElementById('displayLastName').innerText = profileData.lastName;
   document.getElementById('displayEmail').innerText = profileData.email;
   document.getElementById('displayContact').innerText = profileData.contact;
   document.getElementById('displayDept').innerText = profileData.department;
   document.getElementById('displayFacultyId').innerText = profileData.facultyId;
   document.getElementById('displayBio').innerText = profileData.bio;
-  document.getElementById('profileName').innerText = profileData.name;
+  document.getElementById('profileName').innerText = `${profileData.firstName} ${profileData.lastName}`.trim();
   document.getElementById('profileRole').innerHTML = `Faculty · ${profileData.department} Department · ${profileData.email}`;
 
-  // Mobile
+  // Mobile – ensure there are at least 6 .info-value elements
   const mobileValues = document.querySelectorAll('#mobilePersonalView .info-value');
-  if (mobileValues.length >= 5) {
-    mobileValues[0].innerText = profileData.name;
-    mobileValues[1].innerText = profileData.email;
-    mobileValues[2].innerText = profileData.contact;
-    mobileValues[3].innerText = profileData.department;
-    mobileValues[4].innerText = profileData.facultyId;
+  if (mobileValues.length >= 6) {
+    mobileValues[0].innerText = profileData.firstName;
+    mobileValues[1].innerText = profileData.lastName;
+    mobileValues[2].innerText = profileData.email;
+    mobileValues[3].innerText = profileData.contact;
+    mobileValues[4].innerText = profileData.department;
+    mobileValues[5].innerText = profileData.facultyId;
   }
   const mobileBioDiv = document.querySelector('#mobileBioView .bio-text');
   if (mobileBioDiv) mobileBioDiv.innerText = profileData.bio;
-  document.getElementById('mobileProfileName').innerText = profileData.name;
+  document.getElementById('mobileProfileName').innerText = `${profileData.firstName} ${profileData.lastName}`.trim();
   document.getElementById('mobileProfileRole').innerHTML = `Faculty · ${profileData.department} · ${profileData.email}`;
 }
 
-// Helper to disable/enable save buttons during async operations
 function setButtonsLoading(loading, ...buttons) {
   buttons.forEach(btn => {
     if (btn) {
@@ -109,14 +108,15 @@ function setButtonsLoading(loading, ...buttons) {
   });
 }
 
-// ---------- Save profile changes ----------
 async function savePersonal(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newName = document.getElementById(`${prefix}EditName`).value.trim();
+  const newFirstName = document.getElementById(`${prefix}EditFirstName`).value.trim();
+  const newLastName = document.getElementById(`${prefix}EditLastName`).value.trim();
   const newEmail = document.getElementById(`${prefix}EditEmail`).value.trim();
   const newContact = document.getElementById(`${prefix}EditContact`).value.trim();
   const newDept = document.getElementById(`${prefix}EditDept`).value.trim();
-  if (!newName || !newEmail || !newContact || !newDept) {
+
+  if (!newFirstName || !newLastName || !newEmail || !newContact || !newDept) {
     showToast('All fields are required.', 'error');
     return;
   }
@@ -133,7 +133,8 @@ async function savePersonal(isMobile = false) {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        name: newName,
+        first_name: newFirstName,
+        last_name: newLastName,
         email: newEmail,
         contact: newContact,
         department: newDept,
@@ -142,11 +143,11 @@ async function savePersonal(isMobile = false) {
     });
     if (!response.ok) throw new Error('Failed to update profile');
     const updatedUser = await response.json();
-    // Update localStorage and currentUser
     localStorage.setItem('user', JSON.stringify(updatedUser));
     currentUser = updatedUser;
     profileData = {
-      name: updatedUser.name,
+      firstName: updatedUser.first_name,
+      lastName: updatedUser.last_name,
       email: updatedUser.email,
       contact: updatedUser.contact,
       department: updatedUser.department,
@@ -155,7 +156,7 @@ async function savePersonal(isMobile = false) {
     };
     updateProfileUI();
     cancelEdit('personal', isMobile);
-    renderAuthUI(); // ensure sidebar/topbar reflect new name
+    renderAuthUI();
     showToast('Personal information updated!', 'success');
   } catch (err) {
     showToast(err.message, 'error');
@@ -179,7 +180,8 @@ async function saveBio(isMobile = false) {
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
-        name: profileData.name,
+        first_name: profileData.firstName,
+        last_name: profileData.lastName,
         email: profileData.email,
         contact: profileData.contact,
         department: profileData.department,
@@ -201,7 +203,6 @@ async function saveBio(isMobile = false) {
   }
 }
 
-// ---------- Change password ----------
 async function changePassword() {
   const current = document.getElementById('currentPw').value;
   const newPw = document.getElementById('newPw').value;
@@ -243,7 +244,6 @@ async function changePassword() {
   }
 }
 
-// ---------- Avatar upload ----------
 function setupAvatarUpload(desktopFileInputId, desktopPreviewId, mobileFileInputId, mobilePreviewId) {
   const desktopInput = document.getElementById(desktopFileInputId);
   const desktopPreview = document.getElementById(desktopPreviewId);
@@ -262,7 +262,6 @@ function setupAvatarUpload(desktopFileInputId, desktopPreviewId, mobileFileInput
       });
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
-      // If backend returns new avatar URL, use it, otherwise keep the preview
       if (data.avatarUrl) {
         imgElement.src = data.avatarUrl;
       }
@@ -274,11 +273,9 @@ function setupAvatarUpload(desktopFileInputId, desktopPreviewId, mobileFileInput
 
   function handleFile(file, imgElement) {
     if (file && file.type.startsWith('image/')) {
-      // Show preview immediately
       const reader = new FileReader();
       reader.onload = function(e) { imgElement.src = e.target.result; };
       reader.readAsDataURL(file);
-      // Upload to server
       uploadAvatar(file, imgElement);
     }
   }
@@ -303,9 +300,11 @@ function renderAuthUI() {
   const mobileAvatar = document.getElementById('mobileAvatar');
 
   if (user) {
-    const name = user.name || 'Faculty';
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    const name = (firstName + ' ' + lastName).trim() || user.name || 'Faculty';
     const role = user.role || 'Faculty';
-    const initial = name.charAt(0).toUpperCase();
+    const initial = (firstName.charAt(0) || lastName.charAt(0) || 'F').toUpperCase();
 
     if (authSection) {
       authSection.innerHTML = `
@@ -339,7 +338,6 @@ function renderAuthUI() {
 
     if (mobileAvatar) mobileAvatar.textContent = initial;
   } else {
-    // Not logged in – show login buttons
     if (authSection) {
       authSection.innerHTML = '<a href="./login_page.html" class="login-btn">Log in</a>';
     }
@@ -352,7 +350,6 @@ function renderAuthUI() {
   }
 }
 
-// ---------- Edit toggles (unchanged) ----------
 function toggleEdit(section, isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
   if (section === 'personal') {
@@ -362,15 +359,19 @@ function toggleEdit(section, isMobile = false) {
       view.style.display = 'none';
       edit.classList.add('active');
       if (!isMobile) {
-        document.getElementById('editName').value = profileData.name;
+        document.getElementById('editFirstName').value = profileData.firstName;
+        document.getElementById('editLastName').value = profileData.lastName;
         document.getElementById('editEmail').value = profileData.email;
         document.getElementById('editContact').value = profileData.contact;
         document.getElementById('editDept').value = profileData.department;
+        document.getElementById('editFacultyId').innerText = profileData.facultyId;
       } else {
-        document.getElementById('mobileEditName').value = profileData.name;
+        document.getElementById('mobileEditFirstName').value = profileData.firstName;
+        document.getElementById('mobileEditLastName').value = profileData.lastName;
         document.getElementById('mobileEditEmail').value = profileData.email;
         document.getElementById('mobileEditContact').value = profileData.contact;
         document.getElementById('mobileEditDept').value = profileData.department;
+        document.getElementById('mobileEditFacultyId').innerText = profileData.facultyId;
       }
     }
   } else if (section === 'bio') {
@@ -405,7 +406,6 @@ function cancelEdit(section, isMobile = false) {
 
 function openPasswordModal() { passwordModal.classList.add('is-open'); }
 function closePasswordModal() { passwordModal.classList.remove('is-open'); }
-
 function confirmSignOut() { confirmModal.classList.add('is-open'); }
 function closeConfirmModal() { confirmModal.classList.remove('is-open'); }
 function signOut() { clearAuthAndRedirect(); }
@@ -414,7 +414,7 @@ function signOut() { clearAuthAndRedirect(); }
 document.addEventListener('DOMContentLoaded', () => {
   passwordModal = document.getElementById('passwordModal');
   confirmModal = document.getElementById('confirmModal');
-  initHamburger();
+  if (typeof initHamburger === 'function') initHamburger();
   renderAuthUI();
   loadProfileData();
   setupAvatarUpload('avatarFile', 'avatarPreview', 'mobileAvatarFile', 'mobileAvatarPreview');

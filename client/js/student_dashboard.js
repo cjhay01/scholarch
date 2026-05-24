@@ -20,14 +20,15 @@ let classmates = [];
 // ---------- Update all UI elements from currentUser ----------
 function updateUserUI() {
   if (!currentUser) return;
-  const name = currentUser.name || 'Student';
+  const firstName = currentUser.first_name || 'Student';
+  const last_name = currentUser.last_name || '';
+
   const role = currentUser.role || 'Student';
   const section = currentUser.year_and_section || '';
-  const initial = name.charAt(0).toUpperCase();
-
+  const initial = firstName.charAt(0).toUpperCase();
   // Desktop sidebar
   const sidebarName = document.querySelector('.sidebar-user-name');
-  if (sidebarName) sidebarName.textContent = name;
+  if (sidebarName) sidebarName.textContent = firstName;
   const sidebarRole = document.querySelector('.sidebar-user-role');
   if (sidebarRole) sidebarRole.textContent = role + (section ? ` · ${section}` : '');
   const avatarCircle = document.querySelector('.sidebar-footer .avatar-circle');
@@ -83,15 +84,15 @@ async function loadClassmates() {
     const users = await response.json();
     classmates = users.map(u => ({
       id: u.user_id,
-      name: u.name
+      name: u.first_name
     }));
     const currentId = currentUser.user_id;
     if (!classmates.find(c => c.id === currentId)) {
-      classmates.push({ id: currentId, name: currentUser.name });
+      classmates.push({ id: currentId, name: currentUser.first_name });
     }
   } catch (err) {
     console.error('Failed to load classmates:', err);
-    classmates = [{ id: currentUser.user_id, name: currentUser.name }];
+    classmates = [{ id: currentUser.user_id, name: currentUser.first_name }];
   }
 }
 
