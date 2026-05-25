@@ -304,7 +304,13 @@ async function saveNewFaculty() {
     return;
   }
 
+  const nameParts = `${firstName.trim()} ${lastName.trim()}`.split(/\s+/);
+  const initials = nameParts.map(part => part.charAt(0).toUpperCase()).join('');
+  const numericId = userId.replace(/\D/g, '');
+  const generatedUsername = `${initials}${numericId.slice(-3)}`;
+
   const body = {
+    username: generatedUsername,
     user_id: userId,
     first_name: firstName,
     last_name: lastName,
