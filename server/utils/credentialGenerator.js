@@ -10,7 +10,7 @@ const generateCredentials = async (user) => {
 
     const generatedUsername = `${initials}${numericId}`;
 
-    const last4Id = user.user_id.slice(-4);
+    const last4Id = user.role === 'Faculty' ? user.user_id.slice(-3) : user.user_id.slice(-4);
     const rawPassword = `${user.role.toLowerCase()}${last4Id}`;
 
     const salt = await bcrypt.genSalt(10);

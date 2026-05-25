@@ -184,7 +184,7 @@ button { cursor: pointer; font-family: inherit; background: none; border: none; 
 
 .main-content {
   flex: 1;
-  overflow-y: hidden;
+  overflow-y: scroll;
   padding: 1.5rem;
 }
 .site-footer {

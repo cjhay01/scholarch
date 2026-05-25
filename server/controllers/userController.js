@@ -5,7 +5,7 @@ const csv = require('csv-parser');
 
 // 1. Manual Account Creation (Admin creates Faculty, Faculty creates Student)
 const createUser = async (req, res) => {
-    const { user_id, first_name, last_name, email, contact_number, year_and_section, role } = req.body;
+    const { user_id, first_name, last_name, email, contact_number, year_and_section, role, username, password } = req.body;
 
     // Validation: Admins create Faculty; Faculty creates Students
     if (req.user.role === 'Admin' && role !== 'Faculty') {
@@ -29,10 +29,15 @@ const createUser = async (req, res) => {
             role,
             adviser_id: role === 'Student' ? req.user._id : undefined,
             creator_id: req.user._id
-
         });
-
-        res.status(201).json({ message: 'User created successfully without credentials', user: newUser });
+        if (req.user.role === 'Admin') {
+            const { generatedUsername, passwordHash } = await generateCredentials(newUser);
+            newUser.username = generatedUsername;
+            newUser.password = passwordHash;
+            await newUser.save();
+            return res.status(201).json({ message: 'User created successfully', user: newUser });
+        }
+        else res.status(201).json({ message: 'User created successfully without credentials', user: newUser });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

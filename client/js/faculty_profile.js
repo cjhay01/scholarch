@@ -353,8 +353,8 @@ function renderAuthUI() {
 function toggleEdit(section, isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
   if (section === 'personal') {
-    const view = document.getElementById(`${prefix}PersonalView`);
-    const edit = document.getElementById(`${prefix}PersonalEdit`);
+    const view = document.getElementById(isMobile ? 'mobilePersonalView' : 'personalView');
+    const edit = document.getElementById(isMobile ? 'mobilePersonalEdit' : 'personalEdit');
     if (view && edit) {
       view.style.display = 'none';
       edit.classList.add('active');
@@ -375,8 +375,8 @@ function toggleEdit(section, isMobile = false) {
       }
     }
   } else if (section === 'bio') {
-    const view = document.getElementById(`${prefix}BioView`);
-    const edit = document.getElementById(`${prefix}BioEdit`);
+    const view = document.getElementById(isMobile ? 'mobileBioView' : 'bioView');
+    const edit = document.getElementById(isMobile ? 'mobileBioEdit' : 'bioEdit');
     if (view && edit) {
       view.style.display = 'none';
       edit.classList.add('active');
@@ -388,15 +388,15 @@ function toggleEdit(section, isMobile = false) {
 function cancelEdit(section, isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
   if (section === 'personal') {
-    const view = document.getElementById(`${prefix}PersonalView`);
-    const edit = document.getElementById(`${prefix}PersonalEdit`);
+    const view = document.getElementById(isMobile ? 'mobilePersonalView' : 'personalView');
+    const edit = document.getElementById(isMobile ? 'mobilePersonalEdit' : 'personalEdit');
     if (view && edit) {
       view.style.display = 'block';
       edit.classList.remove('active');
     }
   } else if (section === 'bio') {
-    const view = document.getElementById(`${prefix}BioView`);
-    const edit = document.getElementById(`${prefix}BioEdit`);
+    const view = document.getElementById(isMobile ? 'mobileBioView' : 'bioView');
+    const edit = document.getElementById(isMobile ? 'mobileBioEdit' : 'bioEdit');
     if (view && edit) {
       view.style.display = 'block';
       edit.classList.remove('active');
