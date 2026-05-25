@@ -249,6 +249,22 @@ const getPublicProposalById = async (req, res) => {
     }
 };
 
+const deleteProposal = async (req, res) => {
+    try {
+        const proposal = await Proposal.findByIdAndDelete(req.params.id);
+        if (!proposal) return res.status(404).json({ message: 'Proposal not found' });
+
+        if (req.user.role !== 'Admin') {
+            return res.status(403).json({ message: 'Not authorized to delete this proposal' });
+        }
+
+        await proposal.deleteOne();
+        res.json({ message: 'Proposal deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createProposal,
     updateProposal,
@@ -258,5 +274,6 @@ module.exports = {
     addFeedback,
     searchArchives,
     getPublicProposals,
-    getPublicProposalById
+    getPublicProposalById,
+    deleteProposal
 };

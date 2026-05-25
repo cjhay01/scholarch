@@ -9,7 +9,8 @@ const {
   addFeedback,
   searchArchives,
   getPublicProposals,
-  getPublicProposalById
+  getPublicProposalById,
+  deleteProposal
 } = require('../controllers/proposalController');
 const { protect, restrictTo } = require('../middleware/auth');
 const { uploadPDF } = require('../middleware/uploadMiddleware');
@@ -26,7 +27,8 @@ router.route('/')
 
 router.route('/:id')
   .get(protect, getProposalById)
-  .put(protect, uploadPDF.single('file'), updateProposal);
+  .put(protect, uploadPDF.single('file'), updateProposal)
+  .delete(protect, restrictTo('Admin'), deleteProposal);
 
 // 3. Workflow Specific Routes
 router.post('/:id/status', protect, restrictTo('Faculty', 'Admin'), updateProposalStatus);
