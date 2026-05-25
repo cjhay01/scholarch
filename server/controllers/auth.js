@@ -3,14 +3,14 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        const user = await User.findOne({ email });
-        if (!user) return res.status(401).json({ message: 'Invalid email or password' });
+        const user = await User.findOne({ username });
+        if (!user) return res.status(401).json({ message: 'Invalid username or password' });
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
+        if (!isMatch) return res.status(401).json({ message: 'Invalid username or password' });
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
@@ -18,7 +18,7 @@ const loginUser = async (req, res) => {
             _id: user._id,
             user_id: user.user_id,
             name: `${user.first_name} ${user.last_name}`,
-            email: user.email,
+            username: user.username,
             role: user.role,
             token
         });

@@ -29,13 +29,13 @@ const seedAdmin = async () => {
             user_id: 'ADMIN-001',
             first_name: 'System',
             last_name: 'Administrator',
-            email: 'admin@plv.edu.ph',
+            username: 'admin001',
             password: passwordHash,
             role: 'Admin',
             department: 'Administration'
         });
 
-        console.log('Root Admin created successfully:', adminUser.email);
+        console.log('Root Admin created successfully:', adminUser.username);
         process.exit(0);
     } catch (error) {
         console.error('Error seeding admin:', error);

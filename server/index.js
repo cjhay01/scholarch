@@ -21,6 +21,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', require('./routes/auth.js'));
 app.use('/api/users', require('./routes/user.js'));
 app.use('/api/proposals', require('./routes/proposal.js'));
+app.use('/api', require('./routes/count.js'));
+
+app.use(express.static(path.join(__dirname, '../client')));
+app.use(express.static(path.join(__dirname, '../client/html')));
+app.use('/assets', express.static(path.join(__dirname, '../client/assets')));
+
 
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
@@ -37,6 +43,9 @@ app.use((err, req, res, next) => {
     });
 });
 
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.NODE_ENV === 'production') {
+    module.exports = app;
+} else {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}

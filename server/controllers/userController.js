@@ -5,13 +5,13 @@ const csv = require('csv-parser');
 
 // 1. Manual Account Creation (Admin creates Faculty, Faculty creates Student)
 const createUser = async (req, res) => {
-    const { user_id, first_name, last_name, target_role } = req.body;
+    const { user_id, first_name, last_name, email, contact_number, year_and_section, role, username, password } = req.body;
 
     // Validation: Admins create Faculty; Faculty creates Students
-    if (req.user.role === 'Admin' && target_role !== 'Faculty') {
+    if (req.user.role === 'Admin' && role !== 'Faculty') {
         return res.status(400).json({ message: 'Admins can only create Faculty accounts.' });
     }
-    if (req.user.role === 'Faculty' && target_role !== 'Student') {
+    if (req.user.role === 'Faculty' && role !== 'Student') {
         return res.status(400).json({ message: 'Faculty can only create Student accounts.' });
     }
 
@@ -23,12 +23,21 @@ const createUser = async (req, res) => {
             user_id,
             first_name,
             last_name,
-            role: target_role,
-            adviser_id: target_role === 'Student' ? req.user._id : undefined,
+            email,
+            contact_number,
+            year_and_section: role === 'Student' ? year_and_section : undefined,
+            role,
+            adviser_id: role === 'Student' ? req.user._id : undefined,
             creator_id: req.user._id
         });
-
-        res.status(201).json({ message: 'User created successfully without credentials', user: newUser });
+        if (req.user.role === 'Admin') {
+            const { generatedUsername, passwordHash } = await generateCredentials(newUser);
+            newUser.username = generatedUsername;
+            newUser.password = passwordHash;
+            await newUser.save();
+            return res.status(201).json({ message: 'User created successfully', user: newUser });
+        }
+        else res.status(201).json({ message: 'User created successfully without credentials', user: newUser });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -44,12 +53,21 @@ const batchCreateStudents = async (req, res) => {
     streamifier.createReadStream(req.file.buffer)
         .pipe(csv())
         .on('data', (row) => {
-            // Expected CSV headers: user_id, first_name, last_name
-            if (row.user_id && row.first_name && row.last_name) {
+            const user_id = row.user_id || row['Student ID'] || row.studentId;
+            const first_name = row.first_name || row['First Name'] || row.firstName;
+            const last_name = row.last_name || row['Last Name'] || row.lastName;
+            const year_and_section = row.year_and_section || row['Year & Section'] || row.yearSection || '';
+            const email = row.email || row.Email || '';
+            const contact_number = row.contact_number || row.contact || row.Contact || '';
+
+            if (user_id && first_name && last_name) {
                 students.push({
-                    user_id: row.user_id,
-                    first_name: row.first_name,
-                    last_name: row.last_name,
+                    user_id,
+                    first_name,
+                    last_name,
+                    year_and_section,
+                    email,
+                    contact_number,
                     role: 'Student',
                     adviser_id: req.user._id, // Assign to the uploading faculty
                     creator_id: req.user._id
@@ -78,7 +96,7 @@ const generateUserCredentials = async (req, res) => {
     try {
         const targetUser = await User.findById(id);
         if (!targetUser) return res.status(404).json({ message: 'User not found' });
-        if (targetUser.email) return res.status(400).json({ message: 'Credentials already generated for this user' });
+        if (targetUser.username) return res.status(400).json({ message: 'Credentials already generated for this user' });
 
         // Authorization checks
         if (req.user.role === 'Faculty' && targetUser.role !== 'Student') {
@@ -88,9 +106,9 @@ const generateUserCredentials = async (req, res) => {
             return res.status(403).json({ message: 'Admin can only generate credentials for Faculty' });
         }
 
-        const { generatedEmail, passwordHash, rawPassword } = await generateCredentials(targetUser);
+        const { generatedUsername, passwordHash, rawPassword } = await generateCredentials(targetUser);
 
-        targetUser.email = generatedEmail;
+        targetUser.username = generatedUsername;
         targetUser.password = passwordHash;
         await targetUser.save();
 
@@ -98,7 +116,7 @@ const generateUserCredentials = async (req, res) => {
         // You would use NodeMailer here to send an email to a secondary address or display it ONCE to the creator.
         res.status(200).json({
             message: 'Credentials generated successfully',
-            email: targetUser.email,
+            username: targetUser.username,
             temporaryPassword: rawPassword
         });
 
@@ -110,7 +128,7 @@ const generateUserCredentials = async (req, res) => {
 // 3b. Get users without credentials (pending)
 const getPendingUsers = async (req, res) => {
     try {
-        let query = { email: { $exists: false } };
+        let query = { username: { $exists: false } };
 
         // Faculty sees only their own students; Admin sees only Faculty
         if (req.user.role === 'Faculty') {
@@ -121,9 +139,8 @@ const getPendingUsers = async (req, res) => {
         }
 
         const users = await User.find(query)
-            .select('user_id first_name last_name role createdAt')
+            .select('user_id first_name last_name role year_and_section email contact_number createdAt')
             .sort({ createdAt: -1 });
-
         res.json(users);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -133,7 +150,7 @@ const getPendingUsers = async (req, res) => {
 // 3c. Generate credentials for ALL pending users
 const generateAllCredentials = async (req, res) => {
     try {
-        let query = { email: { $exists: false } };
+        let query = { username: { $exists: false } };
 
         if (req.user.role === 'Faculty') {
             query.role = 'Student';
@@ -149,16 +166,17 @@ const generateAllCredentials = async (req, res) => {
 
         const results = [];
         for (const targetUser of pendingUsers) {
-            const { generatedEmail, passwordHash, rawPassword } = await generateCredentials(targetUser);
-            targetUser.email = generatedEmail;
+            const { generatedUsername, passwordHash, rawPassword } = await generateCredentials(targetUser);
+            targetUser.username = generatedUsername;
             targetUser.password = passwordHash;
             await targetUser.save();
             results.push({
                 _id: targetUser._id,
                 user_id: targetUser.user_id,
                 name: `${targetUser.first_name} ${targetUser.last_name}`,
-                email: generatedEmail,
-                temporaryPassword: rawPassword
+                username: generatedUsername,
+                password: rawPassword,
+                email: targetUser.email
             });
         }
 
@@ -290,10 +308,137 @@ const getMyCreatedUsers = async (req, res) => {
                 { adviser_id: req.user._id }
             ]
         })
-        .select('user_id first_name last_name email role createdAt')
-        .sort({ createdAt: -1 });
+            .select('user_id first_name last_name username role createdAt updatedAt year_and_section email')
+            .sort({ createdAt: -1 });
 
         res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get currently logged-in user
+const getMyUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Update current user's profile info
+const updateMyInfo = async (req, res) => {
+    const { first_name, last_name, email, contact, year_and_section, department, bio } = req.body;
+
+    try {
+        const updateFields = {};
+        if (first_name !== undefined) updateFields.first_name = first_name;
+        if (last_name !== undefined) updateFields.last_name = last_name;
+        if (email !== undefined) updateFields.email = email;
+        if (contact !== undefined) updateFields.contact_number = contact;
+        if (year_and_section !== undefined) updateFields.year_and_section = year_and_section;
+        if (department !== undefined) updateFields.department = department;
+        if (bio !== undefined) updateFields.bio = bio;
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            updateFields,
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const deletePendingUser = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Authorization checks
+        if (req.user.role === 'Faculty' && user.role !== 'Student') {
+            return res.status(403).json({ message: 'Faculty can only delete Student accounts' });
+        }
+        if (req.user.role === 'Admin' && user.role !== 'Faculty') {
+            return res.status(403).json({ message: 'Admin can only delete Faculty accounts' });
+        }
+
+        await user.deleteOne();
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Get users with optional filtering (e.g., section, role)
+const getUsers = async (req, res) => {
+    try {
+        const { section, role } = req.query;
+        let query = {};
+        
+        if (section) query.year_and_section = section;
+        if (role) query.role = role;
+        
+        const users = await User.find(query)
+            .select('user_id first_name last_name role year_and_section email contact_number')
+            .sort({ last_name: 1, first_name: 1 });
+
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const updateUser = async (req, res) => {
+    const { id } = req.params;
+    const { first_name, last_name, email, contact, password } = req.body;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (req.user.role !== 'Admin' && req.user._id !== user._id) {
+            return res.status(403).json({ message: 'Not authorized to update this account' });
+        }
+
+        if (first_name) user.first_name = first_name;
+        if (last_name) user.last_name = last_name;
+        if (email) user.email = email;
+        if (contact) user.contact_number = contact;
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(password, salt);
+        }
+
+        await user.save();
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const deleteUser = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (req.user.role !== 'Admin' && req.user._id !== user._id) {
+            return res.status(403).json({ message: 'Not authorized to delete this account' });
+        }
+
+        await user.deleteOne();
+        res.json({ message: 'User deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -310,5 +455,11 @@ module.exports = {
     getMyClassmates,
     getMyCreatedUsers,
     updateProfile,
-    changePassword
+    changePassword,
+    getMyUser,
+    updateMyInfo,
+    deletePendingUser,
+    getUsers,
+    updateUser,
+    deleteUser
 };
