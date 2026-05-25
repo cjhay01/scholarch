@@ -306,16 +306,17 @@ async function saveNewFaculty() {
 
   const body = {
     user_id: userId,
-    name: `${firstName} ${lastName}`,
+    first_name: firstName,
+    last_name: lastName,
     email,
-    contact,
+    contact_number: contact,
     role: 'Faculty'
   };
   if (password) body.password = password;
 
   const token = getToken();
   try {
-    const res = await fetch(`${API_BASE}/users`, {
+    const res = await fetch(`${API_BASE}/users/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

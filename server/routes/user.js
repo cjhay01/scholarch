@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createUser, batchCreateStudents, generateUserCredentials, getPendingUsers, generateAllCredentials, listUsersByRole, getMyAdviser, getMyClassmates, getMyCreatedUsers, updateProfile, changePassword, getMyUser, updateMyInfo, deletePendingUser, getUsers, updateUser } = require('../controllers/userController');
+const { createUser, batchCreateStudents, generateUserCredentials, getPendingUsers, generateAllCredentials, listUsersByRole, getMyAdviser, getMyClassmates, getMyCreatedUsers, updateProfile, changePassword, getMyUser, updateMyInfo, deletePendingUser, getUsers, updateUser, deleteUser } = require('../controllers/userController');
 const { protect, restrictTo } = require('../middleware/auth');
 const { uploadCSV } = require('../middleware/uploadMiddleware');
 
@@ -21,7 +21,8 @@ router.get('/my-created', protect, restrictTo('Admin', 'Faculty'), getMyCreatedU
 
 router.post('/:id/generate-credentials', protect, restrictTo('Admin', 'Faculty'), generateUserCredentials);
 
-router.put('/:id', protect, restrictTo('Admin'), updateUser)
+router.put('/:id', protect, restrictTo('Admin'), updateUser);
+router.delete('/:id', protect, restrictTo('Admin'), deleteUser);
 router.put('/profile', protect, updateProfile);
 router.put('/password', protect, changePassword);
 
