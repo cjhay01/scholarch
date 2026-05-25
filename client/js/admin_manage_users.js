@@ -318,7 +318,8 @@ async function saveNewFaculty() {
     contact_number: contact,
     role: 'Faculty'
   };
-  if (password) body.password = password;
+  if (password) body.password = password
+  else body.password = "faculty123";
 
   const token = getToken();
   try {
