@@ -100,11 +100,11 @@ function updateProfileUI() {
 // ---------- Save profile changes ----------
 async function savePersonal(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newFirstName = document.getElementById(`${prefix}EditFirstName`).value.trim();
-  const newLastName = document.getElementById(`${prefix}EditLastName`).value.trim();
-  const newEmail = document.getElementById(`${prefix}EditEmail`).value.trim();
-  const newContact = document.getElementById(`${prefix}EditContact`).value.trim();
-  const newSection = document.getElementById(`${prefix}EditSection`).value.trim();
+  const newFirstName = document.getElementById(isMobile ? 'mobileEditFirstName' : 'editFirstName').value.trim();
+  const newLastName = document.getElementById(isMobile ? 'mobileEditLastName' : 'editLastName').value.trim();
+  const newEmail = document.getElementById(isMobile ? 'mobileEditEmail' : 'editEmail').value.trim();
+  const newContact = document.getElementById(isMobile ? 'mobileEditContact' : 'editContact').value.trim();
+  const newSection = document.getElementById(isMobile ? 'mobileEditSection' : 'editSection').value.trim();
   if (!newFirstName || !newLastName || !newEmail || !newContact || !newSection) {
     showToast('All fields are required.', 'error');
     return;
@@ -151,7 +151,7 @@ async function savePersonal(isMobile = false) {
 
 async function saveBio(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newBio = document.getElementById(`${prefix}EditBio`).value;
+  const newBio = document.getElementById(isMobile ? 'mobileEditBio' : 'editBio').value;
   const token = getToken();
   try {
     const response = await fetch(`${API_BASE}/users/me`, {

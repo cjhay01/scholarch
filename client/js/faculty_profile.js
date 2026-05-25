@@ -111,11 +111,11 @@ function setButtonsLoading(loading, ...buttons) {
 
 async function savePersonal(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newFirstName = document.getElementById(`${prefix}EditFirstName`).value.trim();
-  const newLastName = document.getElementById(`${prefix}EditLastName`).value.trim();
-  const newEmail = document.getElementById(`${prefix}EditEmail`).value.trim();
-  const newContact = document.getElementById(`${prefix}EditContact`).value.trim();
-  const newDept = document.getElementById(`${prefix}EditDept`).value.trim();
+  const newFirstName = document.getElementById(isMobile ? 'mobileEditFirstName' : 'editFirstName').value.trim();
+  const newLastName = document.getElementById(isMobile ? 'mobileEditLastName' : 'editLastName').value.trim();
+  const newEmail = document.getElementById(isMobile ? 'mobileEditEmail' : 'editEmail').value.trim();
+  const newContact = document.getElementById(isMobile ? 'mobileEditContact' : 'editContact').value.trim();
+  const newDept = document.getElementById(isMobile ? 'mobileEditDept' : 'editDept').value.trim();
   if (!newFirstName || !newLastName || !newEmail || !newContact || !newDept) {
     showToast('All fields are required.', 'error');
     return;
@@ -167,7 +167,7 @@ async function savePersonal(isMobile = false) {
 
 async function saveBio(isMobile = false) {
   const prefix = isMobile ? 'mobile' : '';
-  const newBio = document.getElementById(`${prefix}EditBio`).value;
+  const newBio = document.getElementById(isMobile ? 'mobileEditBio' : 'editBio').value;
   const token = getToken();
   const saveBtn = document.querySelector(`.btn-save[data-section="${prefix}bio"]`);
   setButtonsLoading(true, saveBtn);
