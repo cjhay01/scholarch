@@ -25,6 +25,7 @@ app.use('/api', require('./routes/count.js'));
 
 app.use(express.static(path.join(__dirname, '../client')));
 app.use(express.static(path.join(__dirname, '../client/html')));
+app.use('/assets', express.static(path.join(__dirname, '../client/assets')));
 
 
 app.use((err, req, res, next) => {
